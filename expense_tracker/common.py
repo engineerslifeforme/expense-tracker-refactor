@@ -1,0 +1,120 @@
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+
+from pydantic import BaseModel
+from typing import ClassVar, Optional
+
+from expense_tracker.database import DbAccess, WhereDef
+
+ONE = Decimal("1.00")
+NEGATIVE_ONE = Decimal("-1.00")
+ZERO = Decimal("0.00")
+
+def s_extend(current_list: list, new_list: list) -> list:
+    try:
+        current_list.extend(new_list)
+        return current_list
+    # current_list is None
+    except AttributeError:
+        return new_list
+
+class BaseDbItem(BaseModel):
+    valid: bool
+    table_name: ClassVar[str] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        assert(self.table_name is not None)
+
+    @classmethod
+    def decimal_columns(cls) -> list:
+        return [n for n, f in cls.model_fields.items() if f.annotation == Decimal]
+    
+    @classmethod
+    def date_columns(cls) -> list:
+        return [n for n, f in cls.model_fields.items() if f.annotation == date]
+    
+    @classmethod
+    def load(cls, db: DbAccess, **kwargs) -> list:
+        return [
+            cls(**info) for info in 
+            db.load_table(
+                cls.table_name, 
+                decimal_columns=cls.decimal_columns(),
+                date_columns=cls.date_columns(),
+                index=None,
+                **kwargs)
+            .to_dict(orient="records")
+        ]
+    
+    def add_to_db(self, db: DbAccess):
+        names = []
+        values = []
+        for name, field in self.model_fields.items():
+            if field.annotation in [Decimal, float, str, date, int, Optional[Path]]:
+                names.append(name)
+                values.append(getattr(self, name))
+            elif field.annotation == bool:
+                names.append(name)
+                raw_value = getattr(self, name)
+                if raw_value:
+                    values.append(1)
+                else:
+                    values.append(0)
+            else:
+                names.append(f"{name}_id")
+                try:
+                    values.append(getattr(self, name).id)
+                except AttributeError:
+                    import pdb;pdb.set_trace()
+        db.insert(self, names, values)
+
+class DbItem(BaseDbItem):
+    id: int    
+    
+    @classmethod
+    def load_single(cls, db: DbAccess, id: int) -> dict:
+        id_where = WhereDef(
+            field="id",
+            comparator="=",
+            value=id,
+        )
+        return cls(**db.load_table(
+            cls.table_name, 
+            decimal_columns=cls.decimal_columns(),
+            date_columns=cls.date_columns(),
+            index=None,
+            where_list=[id_where]) \
+        .to_dict(orient="records")[0])      
+
+
+class DateItem(BaseModel):
+    date: date
+
+class NamedItem(BaseModel):
+    name: str
+
+class BalanceItem(BaseModel):
+    balance: Decimal
+
+    def modify_balance(self, db: DbAccess, amount: Decimal) -> Decimal:
+        new_balance = self.balance + amount
+        db.update_value(self, "balance", new_balance)
+        self.balance = new_balance
+        return new_balance
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Without this pydantic reads .00 out of the database
+        # and truncates, so 100.00 shows up as 100
+        self.balance = self.balance.quantize(ZERO)
+
+class AmountItem(BaseModel):
+    amount: Decimal
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Without this pydantic reads .00 out of the database
+        # and truncates, so 100.00 shows up as 100
+        self.amount = self.amount.quantize(ZERO)

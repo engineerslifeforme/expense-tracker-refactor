@@ -1,0 +1,58 @@
+from decimal import Decimal
+
+import streamlit as st
+import pandas as pd
+
+from expense_tracker.database import DbAccess
+from expense_tracker.account import Account
+from expense_tracker.method import Method
+from expense_tracker.category import Category
+
+def select_account(db: DbAccess, **kwargs) -> Account:
+    return _select(db, Account, "Account", **kwargs)
+
+def select_method(db: DbAccess, **kwargs) -> Method:
+    return _select(db, Method, "Method", **kwargs)
+
+def select_category(db: DbAccess, **kwargs) -> Category:
+    return _select(db, Category, "Category", **kwargs)
+
+def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_prefix: str = None, st_container = None):
+    if st_container is None:
+        st_container = st
+    if label_prefix is not None:
+        label = " ".join([label_prefix, label])
+    if label_suffix is not None:
+        label = " ".join([label, label_suffix])
+    items = DataType.load(db)
+    name_map = {a.name: a for a in items}
+    return name_map[st_container.selectbox(
+        label,
+        options = list(name_map.keys()),
+    )]
+
+def amount_input(label_suffix = None, st_container = None) -> Decimal:
+    if st_container is None:
+        st_container = st
+    label = "Amount"
+    if label_suffix is not None:
+        label = " ".join([label, label_suffix])
+    return Decimal(st_container.number_input(
+        label,
+        min_value=0.00,
+        step=0.01,
+    ))
+
+def list_to_df(pydantic_list: list) -> pd.DataFrame:
+    return pd.DataFrame([m.dict() for m in pydantic_list])
+
+def taction_table(taction_list: list) -> pd.DataFrame:
+    dict_list = []
+    for taction in taction_list:
+        dict_data = taction.dict()
+        dict_data["account"] = taction.account.name
+        dict_data["method"] = taction.method.name
+        dict_list.append(dict_data)
+    df = pd.DataFrame(dict_list)
+    df["amount"] = df["amount"].astype(float)
+    return df

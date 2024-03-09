@@ -1,0 +1,26 @@
+import streamlit as st
+
+from expense_tracker.database import DbAccess
+from transaction_input import transaction_input
+from hsa_management import hsa_management
+
+""" # Expense App """
+
+db = DbAccess("example.db")
+
+views = [
+    "Transaction Input",
+    "HSA Management",
+]
+
+view = st.sidebar.radio(
+    "Select View",
+    options = views
+)
+
+if view == views[0]:
+    transaction_input(db)
+elif view == views[1]:
+    hsa_management(db)
+else:
+    st.error(f"Unknown view {view}")
