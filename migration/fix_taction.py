@@ -15,15 +15,19 @@ assert(db_path.exists())
 print(f"Fixing {db_path}")
 db = DbAccess(db_path)
 
+assign_amounts = False
 try:
     db.con.execute("ALTER TABLE taction ADD COLUMN `amount` decimal(10,2) DEFAULT NULL")
     db.con.commit()
+    db.con.execute("UPDATE taction SET amount=0.00")
+    db.con.commit()
+    assign_amounts = True
 except:
     # If column already created, this will fail
+    print("Failed to edit amounts")
     pass
+
 db.con.execute("UPDATE taction SET not_real=0 WHERE not_real IS NULL")
-db.con.commit()
-db.con.execute("UPDATE taction SET amount=0.00")
 db.con.commit()
 
 for taction in pd.read_sql_query("SELECT * FROM taction", db.con).to_dict(orient="records"):
@@ -33,12 +37,13 @@ for taction in pd.read_sql_query("SELECT * FROM taction", db.con).to_dict(orient
         db.con.commit()
         #print(sql)
 
-#import pdb;pdb.set_trace()
-tactions = DbTransaction.load(db)
+if assign_amounts:
+    tactions = DbTransaction.load(db)
 
-for taction in tqdm(tactions):
-    taction_subs = DbSub.load(db, taction_id=taction.id)
-    total_amount = ZERO
-    for sub in taction_subs:
-        total_amount += sub.amount
-    db.update_value(taction, "amount", total_amount)
+    for taction in tqdm(tactions):
+        taction_subs = DbSub.load(db, taction_id=taction.id)
+        total_amount = ZERO
+        for sub in taction_subs:
+            total_amount += sub.amount
+        db.update_value(taction, "amount", total_amount)
+

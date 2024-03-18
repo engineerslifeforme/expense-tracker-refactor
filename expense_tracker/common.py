@@ -3,7 +3,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from pydantic import BaseModel
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Union
 
 from expense_tracker.database import DbAccess, WhereDef
 
@@ -52,9 +52,11 @@ class BaseDbItem(BaseModel):
         names = []
         values = []
         for name, field in self.model_fields.items():
-            if field.annotation in [Decimal, float, str, date, int, Optional[Path]]:
+            if field.annotation in [Decimal, float, str, date, int, Optional[Path], Optional[int]]:
                 names.append(name)
                 values.append(getattr(self, name))
+            elif field.annotation == Union:
+                import pdb;pdb.set_trace()
             elif field.annotation == bool:
                 names.append(name)
                 raw_value = getattr(self, name)
