@@ -117,22 +117,31 @@ def assign_receipt(db: DbAccess, hsa_transaction: DbHsaTransaction):
     total_path = selected_path.path / selected_filename
     st.markdown(f"Total path: {total_path}")
     if st.button("Assign Receipt Path"):
+        st.success(f"Assigning `{total_path}` to ID: {hsa_transaction.id}")
         db.update_value(hsa_transaction, "receipt_path", total_path)
 
 def assign_expense(db: DbAccess, hsa_transaction: DbHsaTransaction, database_transactions: pd.DataFrame):
     if hsa_transaction.expense_taction_id is not None:
         st.warning("HSA Transaction already has a expense assigned!")
     else:
-        st.markdown("Matching Expenses")
-        matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount * NEGATIVE_ONE))
-        matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["expense_taction_id"])
-        if st.checkbox("Filter Expenses Already In Use", value=True):
-            matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
-        st.write(matching_transactions)
-        chosen_assignment = st.selectbox(
-            "Transaction to Assign",
-            options=list(matching_transactions["id"])
-        )
+        if st.checkbox("Manual Expense Assignment"):
+            chosen_assignment = st.number_input(
+                "Manual Transaction ID Assignment",
+                min_value=0,
+                step=1,
+            )
+            st.write(taction_table([Transaction.load_single(db, chosen_assignment)]))
+        else:
+            st.markdown("Matching Expenses")
+            matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount * NEGATIVE_ONE))
+            matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["expense_taction_id"])
+            if st.checkbox("Filter Expenses Already In Use", value=True):
+                matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
+            st.write(matching_transactions)
+            chosen_assignment = st.selectbox(
+                "Transaction to Assign",
+                options=list(matching_transactions["id"])
+            )
         if st.button("Assign Expense"):
             st.success(f"Assigning Expense {chosen_assignment} to HSA transaction {hsa_transaction.id}")
             db.update_value(hsa_transaction, "expense_taction_id", chosen_assignment)
