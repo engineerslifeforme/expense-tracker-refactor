@@ -15,6 +15,11 @@ assert(db_path.exists())
 print(f"Fixing {db_path}")
 db = DbAccess(db_path)
 
+db.con.execute("ALTER TABLE category DROP COLUMN no_kid_retire")
+db.con.commit()
+db.con.execute("ALTER TABLE category DROP COLUMN kid_retire")
+db.con.commit()
+
 assign_amounts = False
 try:
     db.con.execute("ALTER TABLE taction ADD COLUMN `amount` decimal(10,2) DEFAULT NULL")

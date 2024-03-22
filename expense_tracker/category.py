@@ -9,8 +9,6 @@ from expense_tracker.budget import Budget
 from expense_tracker.database import DbAccess
 
 class BaseCategory(DbItem, NamedItem):
-    no_kid_retire: Decimal
-    kid_retire: Decimal
     table_name: ClassVar[str] = "category"
 
 class DbCategory(BaseCategory):
