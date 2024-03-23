@@ -19,6 +19,7 @@ def hsa_management(db: DbAccess):
         "Assignment",
         "Upload Records",
         "Find Expenses to Claim",
+        "Check Database",
     ]
     hsa_task = st.sidebar.radio(
         "Current HSA Task",
@@ -30,13 +31,39 @@ def hsa_management(db: DbAccess):
         upload_record(db)
     elif hsa_task == hsa_tasks[2]:
         find_expenses(db)
+    elif hsa_task == hsa_tasks[3]:
+        check(db)
     else:
         st.error(f"Unknown HSA task: {hsa_task}")
 
 def check(db: DbAccess):
-    pass
-    # All assignments are to valid
-    # no duplicate expenses or receipts
+    transactions = pd.DataFrame([t.model_dump() for t in DbHsaTransaction.load(db)])
+    expense_duplicates = transactions.loc[transactions["expense_taction_id"].duplicated(), "expense_taction_id"].unique()
+    if len(expense_duplicates) < 1:
+        st.success("All Expense Assignments unique!")
+    else:
+        st.error("Not all expense assignments unique!")
+        nonunique = transactions.loc[transactions["expense_taction_id"].isin(list(expense_duplicates)), :]
+        st.markdown(f"{len(nonunique)} Non-unique expense assignments:")
+        st.write(nonunique)
+    distribution_duplicates = transactions.loc[transactions["distribution_taction_id"].duplicated(), "distribution_taction_id"].unique()
+    if len(distribution_duplicates) < 1:
+        st.success("All Distribution Assignments unique!")
+    else:
+        st.error("Not all Distribution assignments unique!")
+        nonunique = transactions.loc[transactions["distribution_taction_id"].isin(list(distribution_duplicates)), :]
+        st.markdown(f"{len(nonunique)} Non-unique distribution assignments:")
+        st.write(nonunique)
+    transactions_with_receipt = transactions.loc[~transactions["receipt_path"].isnull(), :]
+    receipt_duplicates = transactions_with_receipt.loc[transactions_with_receipt["receipt_path"].duplicated(), "receipt_path"].unique()
+    if len(receipt_duplicates) < 1:
+        st.success("All Receipt Assignments unique!")
+    else:
+        st.error("Not all Receipt assignments unique!")
+        nonunique = transactions.loc[transactions["receipt_path"].isin(list(receipt_duplicates)), :]
+        st.markdown(f"{len(nonunique)} Non-unique receipt path assignments:")
+        st.write(nonunique)
+    # TODO: All assignments are to valid
 
 def find_expenses(db: DbAccess):
     st.markdown("### Find Expenses to Claim")
