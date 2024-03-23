@@ -2,9 +2,10 @@ from decimal import Decimal
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 from expense_tracker.database import DbAccess
-from expense_tracker.hsa_transactions import DbHsaTransaction
+from expense_tracker.hsa_transactions import DbHsaTransaction, HsaTransaction
 from expense_tracker.transaction import Transaction
 from expense_tracker.receipt_paths import ReceiptPath
 from expense_tracker.common import NEGATIVE_ONE
@@ -14,12 +15,39 @@ from helper_ui import (
     select_category,
 )
 
+def delete_expense_assignment(*args):
+    delete_assignment(*args, "Expense", "expense_taction_id")
+
+def delete_distribution_assignment(*args):
+    delete_assignment(*args, "Distribution", "distribution_taction_id")
+
+def delete_receipt_assignment(*args):
+    delete_assignment(*args, "Receipt", "receipt_path")
+
+def delete_assignment(db: DbAccess, id_options: list, assignment_name: str, field_name: str):
+    left, right = st.columns(2)
+    selected_expense_to_delete = left.selectbox(
+        f"HSA Transaction to Delete {assignment_name} Assignment",
+        options=id_options
+    )
+    if st.checkbox(f"Show {assignment_name} Assignment Detaills"):
+        transaction_to_edit = HsaTransaction.load_single(db, selected_expense_to_delete)
+        st.write(transaction_to_edit.model_dump())
+    if right.button(f"Delete {assignment_name} Assignment"):
+        # Need to edit base item
+        transaction_to_edit = DbHsaTransaction.load_single(db, selected_expense_to_delete)
+        st.success(f"Delete {assignment_name} assignment from transaction ID: {selected_expense_to_delete}")
+        db.update_value(transaction_to_edit, field_name, None)
+
 def hsa_management(db: DbAccess):
     hsa_tasks = [
         "Assignment",
         "Upload Records",
         "Find Expenses to Claim",
         "Check Database",
+        "Delete Assignments",
+        "Search",
+        "Invalidate Transaction",
     ]
     hsa_task = st.sidebar.radio(
         "Current HSA Task",
@@ -33,11 +61,53 @@ def hsa_management(db: DbAccess):
         find_expenses(db)
     elif hsa_task == hsa_tasks[3]:
         check(db)
+    elif hsa_task == hsa_tasks[4]:
+        delete_assignments(db)
+    elif hsa_task == hsa_tasks[5]:
+        search(db)
+    elif hsa_task == hsa_tasks[6]:
+        invalidate(db)
     else:
         st.error(f"Unknown HSA task: {hsa_task}")
 
+def invalidate(db: DbAccess):
+    id_to_invalidate = st.number_input(
+        "HSA Transaction ID to invalidate",
+        min_value=0,
+        step=1,
+        value=1,
+    )
+    transaction_to_edit = HsaTransaction.load_single(db, id_to_invalidate)
+    st.write(transaction_to_edit.model_dump())
+    transaction_to_edit = DbHsaTransaction.load_single(db, id_to_invalidate)
+    if st.button("Invalidate"):
+        db.update_value(transaction_to_edit, "valid", False)
+
+def search(db: DbAccess):
+    st.write(pd.DataFrame([
+        i.model_dump() for i in DbHsaTransaction.load(db)
+    ]))
+
+def delete_assignments(db: DbAccess):
+    all_ids = [i.id for i in DbHsaTransaction.load(db)]
+    delete_expense_assignment(
+        db,
+        all_ids,
+    )
+    delete_distribution_assignment(
+        db,
+        all_ids,
+    )
+    delete_receipt_assignment(
+        db,
+        all_ids,
+    )
+
 def check(db: DbAccess):
+    st.markdown("### Checking Database Correctness")
     transactions = pd.DataFrame([t.model_dump() for t in DbHsaTransaction.load(db)])
+    
+    st.markdown("#### Duplicate Transaction to Expense Assignments?")
     expense_duplicates = transactions.loc[transactions["expense_taction_id"].duplicated(), "expense_taction_id"].unique()
     if len(expense_duplicates) < 1:
         st.success("All Expense Assignments unique!")
@@ -46,14 +116,20 @@ def check(db: DbAccess):
         nonunique = transactions.loc[transactions["expense_taction_id"].isin(list(expense_duplicates)), :]
         st.markdown(f"{len(nonunique)} Non-unique expense assignments:")
         st.write(nonunique)
+        delete_expense_assignment(db, list(nonunique["id"]))
+    
+    st.markdown("#### Duplicate Transaction to Distribution Assignments?")
     distribution_duplicates = transactions.loc[transactions["distribution_taction_id"].duplicated(), "distribution_taction_id"].unique()
-    if len(distribution_duplicates) < 1:
+    if len(distribution_duplicates) < 1 or (len(distribution_duplicates) == 1 and np.isnan(distribution_duplicates[0])):
         st.success("All Distribution Assignments unique!")
     else:
         st.error("Not all Distribution assignments unique!")
         nonunique = transactions.loc[transactions["distribution_taction_id"].isin(list(distribution_duplicates)), :]
         st.markdown(f"{len(nonunique)} Non-unique distribution assignments:")
         st.write(nonunique)
+        delete_distribution_assignment(db, list(nonunique["id"]))
+    
+    st.markdown("#### Duplicate Transaction to Receipt Assignments?")
     transactions_with_receipt = transactions.loc[~transactions["receipt_path"].isnull(), :]
     receipt_duplicates = transactions_with_receipt.loc[transactions_with_receipt["receipt_path"].duplicated(), "receipt_path"].unique()
     if len(receipt_duplicates) < 1:
@@ -63,7 +139,22 @@ def check(db: DbAccess):
         nonunique = transactions.loc[transactions["receipt_path"].isin(list(receipt_duplicates)), :]
         st.markdown(f"{len(nonunique)} Non-unique receipt path assignments:")
         st.write(nonunique)
+    st.markdown("#### Invalid Transaction with Mappings?")
+    invalids = transactions.loc[~transactions["valid"], :]
+    bad_mappings = []
+    bad_mappings.extend(invalids.loc[~invalids["expense_taction_id"].isnull(), "id"])
+    bad_mappings.extend(invalids.loc[~invalids["distribution_taction_id"].isnull(), "id"])
+    bad_mappings.extend(invalids.loc[~invalids["receipt_path"].isnull(), "id"])
+    bad_mappings = set(bad_mappings)
+    if len(bad_mappings) < 1:
+        st.success("No mappings on invalid transactions")
+    else:
+        st.error(f"Mappings existing on {len(bad_mappings)} invalid transactions!")
+        st.write(transactions.loc[transactions["id"].isin(bad_mappings), :])
     # TODO: All assignments are to valid
+    # TODO: Check expense, distribution amount match
+    # TODO: Same dates with same amounts
+    # TODO: All transactions mapped to distribution
 
 def find_expenses(db: DbAccess):
     st.markdown("### Find Expenses to Claim")
