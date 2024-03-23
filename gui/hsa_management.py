@@ -114,11 +114,15 @@ def assign_receipt(db: DbAccess, hsa_transaction: DbHsaTransaction):
     selected_filename = st.selectbox(
         "File to Assign", [f.name for f in list(selected_path.path.glob("*")) if f.is_file() and f.name[0] != "."]
     )
-    total_path = selected_path.path / selected_filename
-    st.markdown(f"Total path: {total_path}")
-    if st.button("Assign Receipt Path"):
-        st.success(f"Assigning `{total_path}` to ID: {hsa_transaction.id}")
-        db.update_value(hsa_transaction, "receipt_path", total_path)
+    if selected_filename is None:
+        # Happens if it is not mounted on mac
+        st.error(f"No files found in {selected_path.path}.  Is it available?")
+    else:
+        total_path = selected_path.path / selected_filename
+        st.markdown(f"Total path: {total_path}")
+        if st.button("Assign Receipt Path"):
+            st.success(f"Assigning `{total_path}` to ID: {hsa_transaction.id}")
+            db.update_value(hsa_transaction, "receipt_path", total_path)
 
 def assign_expense(db: DbAccess, hsa_transaction: DbHsaTransaction, database_transactions: pd.DataFrame):
     if hsa_transaction.expense_taction_id is not None:
