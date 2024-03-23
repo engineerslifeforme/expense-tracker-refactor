@@ -1,4 +1,5 @@
 from typing import ClassVar
+from decimal import Decimal
 
 from expense_tracker.common import DbItem, s_extend, AmountItem
 from expense_tracker.category import Category
@@ -15,7 +16,7 @@ class DbSub(BaseSub):
 
     @property
     def base_fields(self) -> dict:
-        return super().dict()
+        return super().model_dump()
 
     def upgrade(self, category: Category, transaction: Transaction):
         assert(category.id == self.category_id)
@@ -27,11 +28,13 @@ class DbSub(BaseSub):
         )
     
     @classmethod
-    def load(cls, db: DbAccess, category_id: int = None, taction_id: int = None, where_list: list = None, **kwargs) -> list:
+    def load(cls, db: DbAccess, amount: Decimal = None, category_id: int = None, taction_id: int = None, where_list: list = None, **kwargs) -> list:
         if taction_id is not None:
             where_list = s_extend(where_list, [WhereDef(field="taction_id", value=taction_id)])
         if category_id is not None:
             where_list = s_extend(where_list, [WhereDef(field="category_id", value=category_id)])
+        if amount is not None:
+            where_list = s_extend(where_list, [WhereDef(field="amount", value=amount)])        
         return super().load(db, where_list=where_list, **kwargs)
 
 class Sub(BaseSub):

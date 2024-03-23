@@ -59,3 +59,14 @@ def taction_table(taction_list: list) -> pd.DataFrame:
     df = pd.DataFrame(dict_list)
     df["amount"] = df["amount"].astype(float)
     return df
+
+def sub_table(sub_list: list) -> pd.DataFrame:
+    dict_list = []
+    for sub in sub_list:
+        dict_data = sub.model_dump()
+        dict_data["category"] = sub.category.name
+        dict_data["description"] = sub.taction.description
+        dict_data["date"] = sub.taction.date
+        del(dict_data["taction"])
+        dict_list.append(dict_data)
+    return pd.DataFrame(dict_list)

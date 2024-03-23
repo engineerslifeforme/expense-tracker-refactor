@@ -4,18 +4,22 @@ import streamlit as st
 
 from expense_tracker.database import DbAccess
 from expense_tracker.transaction import Transaction
+from expense_tracker.sub import Sub
 
 from helper_ui import (
     taction_table,
     amount_input,
+    sub_table,
+    select_category,
 )
 
 def search(db: DbAccess):
     st.markdown("### Search")
 
     search_modes = [
-        "ID Search",
-        "Data Search",
+        "Transaction ID Search",
+        "Transaction Data Search",
+        "Sub Data Search",
     ]
 
     search_mode = st.sidebar.radio(
@@ -25,13 +29,26 @@ def search(db: DbAccess):
 
     if search_mode == search_modes[0]:
         search_id(db)
-    if search_mode == search_modes[1]:
-        data_search(db)
+    elif search_mode == search_modes[1]:
+        transaction_data_search(db)
+    elif search_mode == search_modes[2]:
+        sub_data_search(db)
+
+def sub_data_search(db: DbAccess):
+    amount = amount_input(allow_negative=True)
+    filter_category = st.checkbox("Filter Category")
+    if filter_category:
+        category_name = select_category(db).name
+    if st.button("Search"):
+        matches = sub_table(Sub.load(db, amount=amount))
+        if filter_category:
+            matches = matches.loc[matches["category"] == category_name, :]        
+        st.write(matches)
 
 def search_id(db: DbAccess):
     pass
 
-def data_search(db: DbAccess):
+def transaction_data_search(db: DbAccess):
     amount = amount_input(allow_negative=True)
     if st.button("Search"):
         matches = Transaction.load(db, amount=amount)
