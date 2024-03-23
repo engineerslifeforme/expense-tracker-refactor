@@ -76,6 +76,8 @@ class DbAccess(object):
         value = new_value
         if object.model_fields[field_name].annotation in [str, Optional[Path]]:
             value = "\"" + str(value) + "\""
+        if new_value is None:
+            value = "null"
         sql = f"UPDATE {object.table_name} SET {field_name} = {value} WHERE id = {object.id}"
         print(f"Executing SQL: {sql}")
         self.con.execute(sql)
