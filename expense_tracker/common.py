@@ -36,7 +36,8 @@ class BaseDbItem(BaseModel):
         return [n for n, f in cls.model_fields.items() if f.annotation == date]
     
     @classmethod
-    def load(cls, db: DbAccess, **kwargs) -> list:
+    def load(cls, db: DbAccess, valid:bool = True, where_list: list = None, **kwargs) -> list:
+        where_list = s_extend(where_list, [WhereDef(field="valid", value=valid)])
         return [
             cls(**info) for info in 
             db.load_table(
@@ -44,6 +45,7 @@ class BaseDbItem(BaseModel):
                 decimal_columns=cls.decimal_columns(),
                 date_columns=cls.date_columns(),
                 index=None,
+                where_list=where_list,
                 **kwargs)
             .to_dict(orient="records")
         ]
