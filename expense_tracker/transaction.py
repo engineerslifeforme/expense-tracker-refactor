@@ -19,7 +19,7 @@ class DbTransaction(BaseTrasaction):
 
     @property
     def base_fields(self) -> dict:
-        return super().dict()
+        return super().model_dump()
     
     def upgrade(self, account_map: dict, method_map: dict):
         return Transaction(
