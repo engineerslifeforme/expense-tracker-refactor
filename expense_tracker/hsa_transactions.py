@@ -54,7 +54,13 @@ class HsaTransaction(BaseHsaTransaction):
     @classmethod
     def load_single(cls, db: DbAccess, id: int) -> dict:
         base = DbHsaTransaction.load_single(db, id)
+        expense = None
+        if base.expense_taction_id is not None:
+            expense = Transaction.load_single(db, base.expense_taction_id)
+        distribution = None
+        if base.distribution_taction_id is not None:
+            distribution = Transaction.load_single(db, base.distribution_taction_id)
         return base.upgrade(
-            expense=Transaction.load_single(db, base.expense_taction_id),
-            distribution=Transaction.load_single(db, base.distribution_taction_id),
+            expense=expense,
+            distribution=distribution,
         )
