@@ -46,7 +46,16 @@ def sub_data_search(db: DbAccess):
         st.write(matches)
 
 def search_id(db: DbAccess):
-    pass
+    st.write(taction_table([
+        Transaction.load_single(
+            db,
+            st.number_input(
+                "Transaction ID to Find",
+                min_value=0,
+                step=1,
+            )
+        )
+    ]))
 
 def transaction_data_search(db: DbAccess):
     amount = amount_input(allow_negative=True)
