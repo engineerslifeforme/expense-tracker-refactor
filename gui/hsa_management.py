@@ -33,6 +33,11 @@ def hsa_management(db: DbAccess):
     else:
         st.error(f"Unknown HSA task: {hsa_task}")
 
+def check(db: DbAccess):
+    pass
+    # All assignments are to valid
+    # no duplicate expenses or receipts
+
 def find_expenses(db: DbAccess):
     st.markdown("### Find Expenses to Claim")
     filter_category = select_category(db)
