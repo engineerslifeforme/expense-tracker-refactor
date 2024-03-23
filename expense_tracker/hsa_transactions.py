@@ -50,3 +50,11 @@ class HsaTransaction(BaseHsaTransaction):
             ) 
             for h in DbHsaTransaction.load(db, **kwargs)
         ]
+    
+    @classmethod
+    def load_single(cls, db: DbAccess, id: int) -> dict:
+        base = DbHsaTransaction.load_single(db, id)
+        return base.upgrade(
+            expense=Transaction.load_single(db, base.expense_taction_id),
+            distribution=Transaction.load_single(db, base.distribution_taction_id),
+        )
