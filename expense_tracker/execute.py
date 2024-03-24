@@ -68,10 +68,10 @@ def execute_transaction(
         amount=ZERO,
     )
     taction.add_to_db(db)
-    next_sub_id = db.get_next_id(Sub)
     total_amount = ZERO
     subs = []
     for amount, category in sub_contents:
+        next_sub_id = db.get_next_id(Sub)
         sub = Sub(
             id = next_sub_id,
             valid=True,
