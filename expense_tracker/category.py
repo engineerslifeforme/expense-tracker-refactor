@@ -36,10 +36,10 @@ class Category(BaseCategory):
 
     @classmethod
     def load_single(cls, db: DbAccess, id: int) -> dict:
-        budget_map = {b.id: b for b in Budget.load(db)}
+        budget_map = {b.id: b for b in Budget.load(db, valid=None)}
         return DbCategory.load_single(db, id).upgrade(budget_map)
     
     @classmethod
-    def load(cls, db: DbAccess) -> list:
-        budget_map = {b.id: b for b in Budget.load(db)}
-        return [c.upgrade(budget_map) for c in DbCategory.load(db)]
+    def load(cls, db: DbAccess, **kwargs) -> list:
+        budget_map = {b.id: b for b in Budget.load(db, valid=None)}
+        return [c.upgrade(budget_map) for c in DbCategory.load(db, **kwargs)]

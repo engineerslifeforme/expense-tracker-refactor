@@ -37,7 +37,8 @@ class BaseDbItem(BaseModel):
     
     @classmethod
     def load(cls, db: DbAccess, valid:bool = True, where_list: list = None, **kwargs) -> list:
-        where_list = s_extend(where_list, [WhereDef(field="valid", value=valid)])
+        if valid is not None:
+            where_list = s_extend(where_list, [WhereDef(field="valid", value=valid)])
         return [
             cls(**info) for info in 
             db.load_table(
