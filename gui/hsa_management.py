@@ -7,12 +7,14 @@ import numpy as np
 from expense_tracker.database import DbAccess
 from expense_tracker.hsa_transactions import DbHsaTransaction, HsaTransaction
 from expense_tracker.transaction import Transaction
+from expense_tracker.sub import Sub, DbSub
 from expense_tracker.receipt_paths import ReceiptPath
 from expense_tracker.common import NEGATIVE_ONE
 from helper_ui import (
     taction_table, 
     list_to_df,
     select_category,
+    sub_table,
 )
 
 def delete_expense_assignment(*args):
@@ -160,7 +162,12 @@ def find_expenses(db: DbAccess):
     st.markdown("### Find Expenses to Claim")
     filter_category = select_category(db)
     if st.button("Show Expenses"):
-        existing = DbHsaTransaction.load(db)
+        sub_df = pd.DataFrame([i.model_dump() for i in DbSub.load(db, category_id=filter_category.id)])
+        st.markdown(f"Total Subs: {len(sub_df)}")
+        existing_mappings = [i.expense_taction_id for i in DbHsaTransaction.load(db)]
+        sub_df = sub_df.loc[~sub_df["taction_id"].isin(existing_mappings), :]
+        st.markdown(f"{len(sub_df)} remaining after filtering already mapped")
+        st.write(sub_table(Sub.upgrade_list(db, DbSub.df_to_list(sub_df))))
 
 
 def upload_record(db: DbAccess):

@@ -1,6 +1,8 @@
 from typing import ClassVar
 from decimal import Decimal
 
+import pandas as pd
+
 from expense_tracker.common import DbItem, s_extend, AmountItem
 from expense_tracker.category import Category
 from expense_tracker.transaction import Transaction
@@ -36,6 +38,10 @@ class DbSub(BaseSub):
         if amount is not None:
             where_list = s_extend(where_list, [WhereDef(field="amount", value=amount)])        
         return super().load(db, where_list=where_list, **kwargs)
+    
+    @classmethod
+    def df_to_list(cls, df: pd.DataFrame) -> list:
+        return [cls(**data) for data in df.to_dict(orient="records")]
 
 class Sub(BaseSub):
     category: Category
@@ -45,10 +51,17 @@ class Sub(BaseSub):
     def load(cls, db: DbAccess, taction_id: int = None, where_list: list = None, **kwargs) -> list:
         if taction_id is not None:
             where_list = s_extend(where_list, [WhereDef(field="taction_id", value=taction_id)])
+        return cls.upgrade_list(db, DbSub.load(db, where_list=where_list, **kwargs))
+        
+    
+    @classmethod
+    def upgrade_list(cls, db: DbAccess, items: list) -> list:
         return [
             s.upgrade(
                 Category.load_single(db, s.category_id),
                 Transaction.load_single(db, s.taction_id)
             )
-            for s in DbSub.load(db, where_list=where_list, **kwargs)
+            for s in items
         ]
+    
+    
