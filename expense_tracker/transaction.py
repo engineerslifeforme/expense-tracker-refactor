@@ -48,14 +48,14 @@ class Transaction(BaseTrasaction):
 
     @classmethod
     def load_single(cls, db: DbAccess, id: int) -> dict:
-        account_map = {a.id: a for a in Account.load(db)}
-        method_map = {m.id: m for m in Method.load(db)}
+        account_map = {a.id: a for a in Account.load(db, valid=None)}
+        method_map = {m.id: m for m in Method.load(db, valid=None)}
         return DbTransaction.load_single(db, id).upgrade(account_map, method_map)
     
     @classmethod
     def load(cls, db: DbAccess, **kwargs) -> list:
-        account_map = {a.id: a for a in Account.load(db)}
-        method_map = {m.id: m for m in Method.load(db)}
+        account_map = {a.id: a for a in Account.load(db, valid=None)}
+        method_map = {m.id: m for m in Method.load(db, valid=None)}
         return [t.upgrade(account_map, method_map) for t in DbTransaction.load(db, **kwargs)]
 
 
