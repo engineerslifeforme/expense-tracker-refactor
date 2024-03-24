@@ -6,6 +6,7 @@ from hsa_management import hsa_management
 from search import search
 from category import category
 from budget import budget
+from account import account
 
 """ # Expense App """
 
@@ -17,6 +18,7 @@ views = [
     "Search",
     "Category",
     "Budget",
+    "Account",
 ]
 
 view = st.sidebar.radio(
@@ -34,5 +36,7 @@ elif view == views[3]:
     category(db)
 elif view == views[4]:
     budget(db)
+elif view == views[5]:
+    account(db)
 else:
     st.error(f"Unknown view {view}")
