@@ -276,6 +276,10 @@ def assign_expense(db: DbAccess, hsa_transaction: DbHsaTransaction, database_tra
                 step=1,
             )
             st.write(taction_table([Transaction.load_single(db, chosen_assignment)]))
+            if chosen_assignment in database_transactions["expense_taction_id"].values:
+                st.error(f"Expense ID {chosen_assignment} already assigned!")
+            else:
+                st.success(f"Expense ID {chosen_assignment} is not currently assigned to an HSA transaction")
         else:
             st.markdown("Matching Expenses")
             matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount * NEGATIVE_ONE))
