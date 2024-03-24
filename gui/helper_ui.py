@@ -68,6 +68,8 @@ def sub_table(sub_list: list) -> pd.DataFrame:
         dict_data["description"] = sub.taction.description
         dict_data["date"] = sub.taction.date
         dict_data["transaction_id"] = sub.taction.id
+        dict_data["receipt_present"] = sub.taction.receipt
+        dict_data["account"] = sub.taction.account.name
         del(dict_data["taction"])
         dict_list.append(dict_data)
     return pd.DataFrame(dict_list)
