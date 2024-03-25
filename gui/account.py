@@ -4,10 +4,13 @@ import pandas as pd
 from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
 
+from helper_ui import amount_input
+
 def account(db: DbAccess):
     options = [
         "Invalidate",
         "Balance",
+        "Add",
     ]
     selected_view = st.sidebar.radio(
         "Account Tool",
@@ -17,8 +20,30 @@ def account(db: DbAccess):
         invalidate(db)
     elif selected_view == options[1]:
         balance(db)
+    elif selected_view == options[2]:
+        add(db)
     else:
         st.error(f"Unknown account mode: {selected_view}")
+
+def add(db: DbAccess):
+    st.markdown("## Add Account")
+    name = st.text_input("Account Name")
+    balance = amount_input(allow_negative=True, balance=True)
+    purpose = st.selectbox(
+        "Account Purpose",
+        options=["Saving", "Spending"]
+    )
+    if st.button("Add Account"):
+        next_id = db.get_next_id(Account)
+        Account(
+            id=next_id,
+            name=name,
+            visibility=True,
+            purpose=purpose,
+            valid=True,
+            balance=balance
+        ).add_to_db(db)
+        st.success(f"Added {name}")
 
 def balance(db: DbAccess):
     st.write(pd.DataFrame([i.model_dump() for i in Account.load(db)]))
