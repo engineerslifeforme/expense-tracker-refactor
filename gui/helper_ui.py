@@ -31,10 +31,13 @@ def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_
         options = list(name_map.keys()),
     )]
 
-def amount_input(label_suffix = None, st_container = None, allow_negative: bool = False) -> Decimal:
+def amount_input(label_suffix = None, st_container = None, allow_negative: bool = False, balance: bool = False) -> Decimal:
     if st_container is None:
         st_container = st
-    label = "Amount"
+    if balance:
+        label = "Balance"
+    else:
+        label = "Amount"
     if label_suffix is not None:
         label = " ".join([label, label_suffix])
     min_value = 0.00
