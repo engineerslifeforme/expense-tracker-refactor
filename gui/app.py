@@ -8,6 +8,8 @@ from category import category
 from budget import budget
 from account import account
 
+st.set_page_config(layout="wide")
+
 """ # Expense App """
 
 db = DbAccess("example.db")
