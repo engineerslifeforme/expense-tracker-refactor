@@ -7,6 +7,7 @@ from search import search
 from category import category
 from budget import budget
 from account import account
+from statement import statement_scanning
 
 st.set_page_config(layout="wide")
 
@@ -21,6 +22,7 @@ views = [
     "Category",
     "Budget",
     "Account",
+    "Statement Scanning",
 ]
 
 view = st.sidebar.radio(
@@ -40,5 +42,7 @@ elif view == views[4]:
     budget(db)
 elif view == views[5]:
     account(db)
+elif view == views[6]:
+    statement_scanning(db)
 else:
     st.error(f"Unknown view {view}")
