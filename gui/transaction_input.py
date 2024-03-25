@@ -91,9 +91,13 @@ def transaction_input(db: DbAccess):
             balance = category.budget.balance
             st.markdown(f"(Category: {category.name}) Budget: {category.budget.name} `${balance}` -> `${(balance + amount).quantize(ONE)}`")        
     if total_amount != ZERO:
-        matches = taction_table(
-            Transaction.load(db, amount=total_amount)
-        )
+        st.markdown("#### Existing Matches")
+        matches = Transaction.load(db, amount=total_amount)
         if len(matches) > 0:
             st.markdown("### Matching Transactions")
-            st.write(matches)
+            st.dataframe(
+                taction_table(matches).sort_values(by=["date"], ascending=False), 
+                use_container_width=True,
+            )
+        else:
+            st.warning("No existing amount matches")
