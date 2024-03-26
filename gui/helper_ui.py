@@ -31,7 +31,7 @@ def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_
         options = list(name_map.keys()),
     )]
 
-def amount_input(label_suffix = None, st_container = None, allow_negative: bool = False, balance: bool = False) -> Decimal:
+def amount_input(label_suffix = None, st_container = None, allow_negative: bool = False, balance: bool = False, default: Decimal = None) -> Decimal:
     if st_container is None:
         st_container = st
     if balance:
@@ -43,10 +43,13 @@ def amount_input(label_suffix = None, st_container = None, allow_negative: bool 
     min_value = 0.00
     if allow_negative:
         min_value = None
+    if default is not None:
+        default = float(default)
     return Decimal(st_container.number_input(
         label,
         min_value=min_value,
         step=0.01,
+        value=default,
     ))
 
 def list_to_df(pydantic_list: list) -> pd.DataFrame:
