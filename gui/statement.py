@@ -5,8 +5,15 @@ import streamlit as st
 import pandas as pd
 
 from expense_tracker.database import DbAccess
+from expense_tracker.statement import DbStatement
+from expense_tracker.transaction import Transaction
 
-from helper_ui import select_account
+from helper_ui import (
+    select_account, 
+    amount_input, 
+    taction_table,
+    select_category,
+)
 
 def statement_scanning(db: DbAccess):
     options = [
@@ -21,13 +28,58 @@ def statement_scanning(db: DbAccess):
     if mode == options[0]:
         upload(db)
     elif mode == options[1]:
-        pass
-        # TODO: Assignment UI
+        assign(db)
     elif mode == options[2]:
         pass
         # TODO: Check UI
     else:
         st.error(f"Unknown mode: {mode}")
+
+def assign(db: DbAccess):
+    st.markdown("### Assign Statements to Transactions")
+    unmapped = DbStatement.load(db, unmapped_taction=True)
+    st.write(pd.DataFrame([i.model_dump() for i in unmapped]))
+    quantity_to_show = st.number_input(
+        "Quantity to View",
+        value=20,
+    )
+    action_options = [
+        "Nothing",
+        "New",
+        "Assign",
+    ]
+    for i in range(min([quantity_to_show, len(unmapped)])):
+        index = i + 1
+        active = unmapped[i]
+        st.markdown(f"**Unmapped #{index}**")
+        receipt = False
+        left, middle, right = st.columns(3)
+        category = select_category(
+            db, 
+            st_container=middle,
+            label_suffix=f"# {index}"
+        )
+        date = right.date_input(
+            f"Date #{index}",
+            value=active.date,
+        )
+        transfer = False
+        account_id = active.account_id
+        amount = amount_input(
+            label_suffix=f"#{index}",
+            allow_negative=True,
+            default=active.amount,
+            st_container=left,
+        )
+        description = st.text_input(
+            f"Description #{index}",
+            value=active.description,
+        )
+        try:        
+            st.write(taction_table(Transaction.load(db, amount=active.amount)).sort_values(by="date", ascending=False))
+        except KeyError:
+            st.warning(f"No matches on ${active.amount}")
+        action = st.radio(f"Action #{index}", options=action_options)
 
 def upload(db: DbAccess):
     st.markdown("## Statement Scanning")
@@ -109,9 +161,37 @@ def upload(db: DbAccess):
                 middle.warning(f"Column `{amount_column}` cannot be converted to decimal")
         if st.checkbox("Flip Amount Sign"):
             new_data["amount"] = new_data["amount"] * Decimal("-1")
+        new_data["account_id"] = account_id
+        new_data["statement_year"] = year
+        new_data["statement_month"] = month
         st.write(new_data)
+        #st.write(pd.DataFrame([i.model_dump() for i in DbStatement.load(db, valid=None)]))
+        existing_data = pd.DataFrame([i.model_dump() for i in DbStatement.load(db, valid=None)])
         if st.button("Add Unique Entries"):
-            pass
-            # TODO: Find entries that are not already present, then add to DB
+            skipped = 0
+            for candidate_item in new_data.to_dict(orient="records"):
+                duplicates = existing_data.loc[
+                    (existing_data["date"] == candidate_item["date"]) &
+                    (existing_data["account_id"] == candidate_item["account_id"]) &
+                    (existing_data["amount"] == candidate_item["amount"]) &
+                    (existing_data["description"] == candidate_item["description"])
+                ]
+                if len(duplicates) == 0:
+                    new_id = db.get_next_id(DbStatement)
+                    DbStatement(
+                        id=new_id,
+                        date=candidate_item["date"],
+                        amount=candidate_item["amount"],
+                        valid=True,
+                        statement_month=candidate_item["statement_month"],
+                        statement_year = candidate_item["statement_year"],
+                        description=candidate_item["description"],
+                        deferred = False,
+                        account_id=candidate_item["account_id"],                        
+                    ).add_to_db(db)
+                    st.success(f"Added statement {new_id}")
+                else:
+                    skipped += 1
+            st.markdown(f"Of {len(new_data)} items, skipped {skipped}")
     else:
         st.warning("Upload File")
