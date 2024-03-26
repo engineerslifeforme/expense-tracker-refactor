@@ -10,9 +10,9 @@ print(f"Fixing {db_path}")
 db = DbAccess(db_path)
 
 try:
-    db.con.execute("ALTER TABLE hsa_transactions ADD COLUMN `valid` tinyint(1) DEFAULT NULL")
+    db.con.execute("ALTER TABLE statement_transactions ADD COLUMN `valid` tinyint(1) DEFAULT NULL")
     db.con.commit()
-    db.con.execute("UPDATE hsa_transactions SET valid=1")
+    db.con.execute("UPDATE statement_transactions SET valid=1")
     db.con.commit()
 except:
-    pass # Already fixed
+    print("failed to fix statement transactions")
