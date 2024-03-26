@@ -1,6 +1,6 @@
 from pathlib import Path
 from decimal import Decimal
-from typing import Union, Optional
+from typing import Union, Optional, Literal
 from datetime import date
 
 import sqlite3
@@ -10,13 +10,17 @@ import numpy as np
 
 class WhereDef(BaseModel):
     field: str
-    comparator: str = "="
     value: Union[Decimal, float, int, date, str]
+    comparator: str = "="
+    is_null: bool = False
 
     @property
     def sql(self) -> str:
         value = self.value
-        if type(self.value) == str:
+        if self.is_null:
+            self.comparator = "IS"
+            value = "NULL"
+        elif type(self.value) == str:
             value = "\"" + self.value + "\""
         return f"{self.field} {self.comparator} {value}"
 
