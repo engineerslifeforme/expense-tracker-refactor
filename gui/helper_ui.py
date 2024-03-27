@@ -45,6 +45,8 @@ def amount_input(label_suffix = None, st_container = None, allow_negative: bool 
         min_value = None
     if default is not None:
         default = float(default)
+    else:
+        default = 0.0
     return Decimal(st_container.number_input(
         label,
         min_value=min_value,
