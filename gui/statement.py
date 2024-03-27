@@ -7,12 +7,15 @@ import pandas as pd
 from expense_tracker.database import DbAccess
 from expense_tracker.statement import DbStatement
 from expense_tracker.transaction import Transaction
+from expense_tracker.execute import execute_transaction
+from expense_tracker.account import Account
 
 from helper_ui import (
     select_account, 
     amount_input, 
     taction_table,
     select_category,
+    select_method,
 )
 
 def statement_scanning(db: DbAccess):
@@ -43,43 +46,94 @@ def assign(db: DbAccess):
         "Quantity to View",
         value=20,
     )
+    default_method = select_method(db)
     action_options = [
         "Nothing",
         "New",
         "Assign",
     ]
+    new_actions = []
+    assign_actions = []
+    no_actions = []
     for i in range(min([quantity_to_show, len(unmapped)])):
         index = i + 1
         active = unmapped[i]
         st.markdown(f"**Unmapped #{index}**")
-        receipt = False
         left, middle, right = st.columns(3)
         category = select_category(
             db, 
-            st_container=middle,
+            st_container=left,
             label_suffix=f"# {index}"
         )
-        date = right.date_input(
-            f"Date #{index}",
-            value=active.date,
-        )
-        transfer = False
-        account_id = active.account_id
-        amount = amount_input(
-            label_suffix=f"#{index}",
-            allow_negative=True,
-            default=active.amount,
-            st_container=left,
-        )
+        # date = right.date_input(
+        #     f"Date #{index}",
+        #     value=active.date,
+        # )
+        right.markdown(f"Date: {active.date}")
+        # amount = amount_input(
+        #     label_suffix=f"#{index}",
+        #     allow_negative=True,
+        #     default=active.amount,
+        #     st_container=left,
+        # )
+        middle.markdown(f"Amount: ${active.amount}")
         description = st.text_input(
             f"Description #{index}",
             value=active.description,
         )
-        try:        
-            st.write(taction_table(Transaction.load(db, amount=active.amount)).sort_values(by="date", ascending=False))
-        except KeyError:
-            st.warning(f"No matches on ${active.amount}")
+        matches = None
         action = st.radio(f"Action #{index}", options=action_options)
+        try:        
+            matches = taction_table(Transaction.load(db, amount=active.amount)).sort_values(by="date", ascending=False)
+        except KeyError:
+            pass
+        
+        if action == action_options[2]: # Assign
+            if matches is None:
+                st.error("No assignments available, defaulting to Nothing action")
+            else:
+                assign_taction_id = st.selectbox(
+                    f"Transaction ID to Assign #{index}",
+                    options=matches["id"]
+                )
+                assign_actions.append((active, assign_taction_id))
+        elif action == action_options[1]:
+            new_actions.append((
+                active,
+                category,
+                active.date,
+                active.account_id,
+                active.amount,
+                description,
+            ))
+        elif action == action_options[0]:
+            no_actions.append(active.id)
+        else:
+            st.error(f"Unknown action selection: {action}")
+        if matches is not None:
+            st.write(matches)
+        else:
+            st.warning(f"No matches on ${active.amount}")
+    if st.button("Execute Actions"):
+        for no_action in no_actions:
+            st.warning(f"No action for statement {no_action}")
+        for new_action in new_actions:
+            statement, category, date, account_id, amount, description = new_action
+            taction, subs = execute_transaction(
+                db,
+                date,
+                False, # transfer
+                description,
+                False, # receipt
+                Account.load_single(db, active.account_id),
+                default_method,
+                [(amount, category)],
+            )
+            st.success(f"Created Transaction {taction.id} and Sub {subs[0].id} for statement {statement.id}")
+            db.update_value(statement, "taction_id", taction.id)
+        for statement, taction_id in assign_actions:
+            db.update_value(statement, "taction_id", taction_id)
+            st.success(f"Assigned statement {statement.id} to Transaction {taction_id}")
 
 def upload(db: DbAccess):
     st.markdown("## Statement Scanning")
