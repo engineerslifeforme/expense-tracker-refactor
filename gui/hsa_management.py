@@ -184,7 +184,7 @@ def upload_record(db: DbAccess):
         dataframe = dataframe.loc[dataframe["Expense Description"] == "Distribution", :]
         st.markdown(f"{len(dataframe)} Total Distributions")
         dataframe = generate_unique_identifier(dataframe)
-        db_records = list_to_df(DbHsaTransaction.load(db))
+        db_records = list_to_df(DbHsaTransaction.load(db, valid=None))
         dataframe = dataframe.loc[~dataframe["unique_identifier"].isin(db_records["unique_identifier"]), :]
         st.markdown(f"{len(dataframe)} Unrecorded Distributions")
         if st.checkbox("View Remaining Entries"):
