@@ -300,18 +300,21 @@ def assign_distribution(db: DbAccess, hsa_transaction: DbHsaTransaction, databas
         st.warning("HSA Transaction already has a distribution assigned!")
     else:
         st.markdown("Matching Distributions")
-        matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount))
-        matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["distribution_taction_id"])
-        if st.checkbox("Filter Distributions Already In Use", value=True):
-            matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
-        st.write(matching_transactions)
-        chosen_assignment = st.selectbox(
-            "Transaction to Assign",
-            options=list(matching_transactions["id"])
-        )
-        if st.button("Assign Distribution"):
-            st.success(f"Assigning Distribution {chosen_assignment} to HSA transaction {hsa_transaction.id}")
-            db.update_value(hsa_transaction, "distribution_taction_id", chosen_assignment)
+        try:
+            matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount))
+            matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["distribution_taction_id"])
+            if st.checkbox("Filter Distributions Already In Use", value=True):
+                matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
+            st.write(matching_transactions)
+            chosen_assignment = st.selectbox(
+                "Transaction to Assign",
+                options=list(matching_transactions["id"])
+            )
+            if st.button("Assign Distribution"):
+                st.success(f"Assigning Distribution {chosen_assignment} to HSA transaction {hsa_transaction.id}")
+                db.update_value(hsa_transaction, "distribution_taction_id", chosen_assignment)
+        except KeyError:
+            st.error(f"No distributions matching ${hsa_transaction.amount}!")
 
 def generate_unique_identifier(expense_data: pd.DataFrame) -> pd.Series:
     expense_data['id'] = expense_data['Expense Date'].astype(str) +\
