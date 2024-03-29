@@ -6,7 +6,7 @@ import pandas as pd
 
 from expense_tracker.database import DbAccess
 from expense_tracker.statement import DbStatement
-from expense_tracker.transaction import Transaction
+from expense_tracker.transaction import Transaction, DbTransaction
 from expense_tracker.execute import execute_transaction
 from expense_tracker.account import Account
 
@@ -17,6 +17,8 @@ from helper_ui import (
     select_category,
     select_method,
 )
+
+FOURTEEN_DAYS = pd.Timedelta(days=14)
 
 def statement_scanning(db: DbAccess):
     options = [
@@ -43,7 +45,25 @@ def assign(db: DbAccess):
     account_id_filter = None
     if st.checkbox("Filter By Account"):
         account_id_filter = select_account(db, label_prefix="Filter").id
-    unmapped = DbStatement.load(db, unmapped_taction=True, account_id=account_id_filter)
+    all_statements = pd.DataFrame([i.model_dump() for i in DbStatement.load(db, account_id=account_id_filter)])
+    unmapped = DbStatement.load(db, account_id=account_id_filter, unmapped_taction=True)
+    if st.button("Attempt Auto-Assign"):
+        transactions = pd.DataFrame([i.model_dump() for i in DbTransaction.load(db)])
+        for unmapped_item in unmapped:
+            min_date = unmapped_item.date - FOURTEEN_DAYS
+            max_date = unmapped_item.date + FOURTEEN_DAYS
+            potential_matches = transactions.loc[
+                (transactions["date"] > min_date) &
+                (transactions["date"] < max_date) &
+                (transactions["amount"] == unmapped_item.amount) &
+                (transactions["account_id"] == unmapped_item.account_id) &
+                (~transactions["id"].isin(all_statements["taction_id"].unique()))
+            ]
+            if len(potential_matches) == 1:
+                assigning_taction = potential_matches["id"].values[0]
+                st.success(f"Assigning statement {unmapped_item.id} to transaction {assigning_taction}")
+                db.update_value(unmapped_item, "taction_id", assigning_taction)
+        unmapped = DbStatement.load(db, account_id=account_id_filter, unmapped_taction=True)
     st.write(pd.DataFrame([i.model_dump() for i in unmapped]))
     quantity_to_show = st.number_input(
         "Quantity to View",
