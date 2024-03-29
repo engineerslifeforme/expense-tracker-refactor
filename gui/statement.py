@@ -40,7 +40,10 @@ def statement_scanning(db: DbAccess):
 
 def assign(db: DbAccess):
     st.markdown("### Assign Statements to Transactions")
-    unmapped = DbStatement.load(db, unmapped_taction=True)
+    account_id_filter = None
+    if st.checkbox("Filter By Account"):
+        account_id_filter = select_account(db, label_prefix="Filter").id
+    unmapped = DbStatement.load(db, unmapped_taction=True, account_id=account_id_filter)
     st.write(pd.DataFrame([i.model_dump() for i in unmapped]))
     quantity_to_show = st.number_input(
         "Quantity to View",
