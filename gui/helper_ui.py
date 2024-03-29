@@ -65,6 +65,10 @@ def taction_table(taction_list: list) -> pd.DataFrame:
         dict_data["method"] = taction.method.name
         dict_list.append(dict_data)
     df = pd.DataFrame(dict_list)
+    try:
+        df = df.sort_values(by=["date"], ascending=False)
+    except KeyError:
+        pass
     df["amount"] = df["amount"].astype(float)
     return df
 
