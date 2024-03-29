@@ -282,15 +282,18 @@ def assign_expense(db: DbAccess, hsa_transaction: DbHsaTransaction, database_tra
                 st.success(f"Expense ID {chosen_assignment} is not currently assigned to an HSA transaction")
         else:
             st.markdown("Matching Expenses")
-            matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount * NEGATIVE_ONE))
-            matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["expense_taction_id"])
-            if st.checkbox("Filter Expenses Already In Use", value=True):
-                matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
-            st.write(matching_transactions)
-            chosen_assignment = st.selectbox(
-                "Transaction to Assign",
-                options=list(matching_transactions["id"])
-            )
+            try:
+                matching_transactions = taction_table(Transaction.load(db, amount=hsa_transaction.amount * NEGATIVE_ONE))
+                matching_transactions["already_in_use"] = matching_transactions["id"].isin(database_transactions["expense_taction_id"])
+                if st.checkbox("Filter Expenses Already In Use", value=True):
+                    matching_transactions = matching_transactions.loc[~matching_transactions["already_in_use"], :]
+                st.write(matching_transactions)
+                chosen_assignment = st.selectbox(
+                    "Transaction to Assign",
+                    options=list(matching_transactions["id"])
+                )
+            except:
+                st.error(f"No Matching expenses for ${hsa_transaction.amount * NEGATIVE_ONE}")
         if st.button("Assign Expense"):
             st.success(f"Assigning Expense {chosen_assignment} to HSA transaction {hsa_transaction.id}")
             db.update_value(hsa_transaction, "expense_taction_id", chosen_assignment)
