@@ -97,9 +97,9 @@ def invalidate_transaction(
     transaction_id: int
 ):
     transaction = Transaction.load_single(db, transaction_id)
-    transaction.invalidate()
-    transaction.account.add_to_balance(Decimal("-1") * transaction.amount)
+    transaction.invalidate(db)
+    transaction.account.add_to_balance(db, Decimal("-1") * transaction.amount)
     for sub in Sub.load(db, taction_id=transaction_id):
-        sub.invalidate()
-        sub.category.budget.add_to_balance(Decimal("-1") * sub.amount)
+        sub.invalidate(db)
+        sub.category.budget.add_to_balance(db, Decimal("-1") * sub.amount)
 
