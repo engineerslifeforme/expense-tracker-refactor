@@ -26,6 +26,7 @@ def statement_scanning(db: DbAccess):
         "Assignment",
         "Check",
         "Invalidate",
+        "Search",
     ]
     mode = st.sidebar.radio(
         "Statement Mode",
@@ -40,8 +41,19 @@ def statement_scanning(db: DbAccess):
         # TODO: Check UI
     elif mode == options[3]:
         invalidate(db)
+    elif mode == options[4]:
+        search(db)
     else:
         st.error(f"Unknown mode: {mode}")
+
+def search(db: DbAccess):
+    if st.checkbox("Filter by Account"):
+        account_id = select_account(db).id
+        statements = DbStatement.load(db, account_id=account_id)
+    else:
+        statements = DbStatement.load(db)
+    statements = pd.DataFrame([s.model_dump() for s in statements])
+    st.write(statements)
 
 def invalidate(db: DbAccess):
     statement_to_invalidate = st.number_input(
