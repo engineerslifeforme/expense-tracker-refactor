@@ -27,6 +27,7 @@ def statement_scanning(db: DbAccess):
         "Check",
         "Invalidate",
         "Search",
+        "Unmap Transaction",
     ]
     mode = st.sidebar.radio(
         "Statement Mode",
@@ -37,14 +38,48 @@ def statement_scanning(db: DbAccess):
     elif mode == options[1]:
         assign(db)
     elif mode == options[2]:
-        pass
-        # TODO: Check UI
+        check(db)
     elif mode == options[3]:
         invalidate(db)
     elif mode == options[4]:
         search(db)
+    elif mode == options[5]:
+        unmap_transaction(db)
     else:
         st.error(f"Unknown mode: {mode}")
+
+def unmap_transaction(db: DbAccess):
+    statement_to_unmap = st.number_input(
+        "Statement ID to unmap Transaction",
+        min_value=0,
+        step=1,
+    )
+    statement = DbStatement.load_single(db, statement_to_unmap)
+    st.write(statement.model_dump())
+    if st.button("Unmap Transaction"):
+        statement.unmap_taction(db)
+        st.success(f"Unmapped transaction from statement {statement.id}")
+
+def check(db: DbAccess):
+    statements = pd.DataFrame([s.model_dump() for s in DbStatement.load(db)])
+    st.markdown("### No Duplicate Assignments")
+    duplicated = statements["taction_id"].duplicated()
+    
+    if all(~duplicated):
+        st.success("No duplicate mappings of statements to transactions")
+    else:
+        duplicate_mappings = statements[duplicated]["taction_id"]
+        st.write(statements.loc[statements["taction_id"].isin(duplicate_mappings), :])
+        st.error("Duplicate mappings of statements to transactions!")
+
+    st.markdown("### No valid statements mapped to invalid transactions")
+    transactions = pd.DataFrame([t.model_dump() for t in DbTransaction.load(db, valid=None)]).set_index("id")
+    merged = statements.join(transactions, on="taction_id", rsuffix="_transaction")
+    if all(merged["valid_transaction"]):
+        st.success("All mapped transactions are valid")
+    else:
+        st.error("Not all mapped transactions are valid!")
+
 
 def search(db: DbAccess):
     if st.checkbox("Filter by Account"):
