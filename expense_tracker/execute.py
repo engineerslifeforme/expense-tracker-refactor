@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
@@ -90,3 +91,15 @@ def execute_transaction(
     account.modify_balance(db, total_amount)
     db.update_value(taction, "amount", total_amount)
     return taction, subs
+
+def invalidate_transaction(
+    db: DbAccess,
+    transaction_id: int
+):
+    transaction = Transaction.load_single(db, transaction_id)
+    transaction.invalidate()
+    transaction.account.add_to_balance(Decimal("-1") * transaction.amount)
+    for sub in Sub.load(db, taction_id=transaction_id):
+        sub.invalidate()
+        sub.category.budget.add_to_balance(Decimal("-1") * sub.amount)
+

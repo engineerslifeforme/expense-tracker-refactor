@@ -75,6 +75,9 @@ class BaseDbItem(BaseModel):
                     import pdb;pdb.set_trace()
         db.insert(self, names, values)
 
+    def invalidate(self, db: DbAccess):
+        db.update_value(self, "valid", False)
+
 class DbItem(BaseDbItem):
     id: int    
     
@@ -104,6 +107,7 @@ class BalanceItem(BaseModel):
     balance: Decimal
 
     def modify_balance(self, db: DbAccess, amount: Decimal) -> Decimal:
+        # TODO: deprecate this in favor of add_to_balance
         new_balance = self.balance + amount
         db.update_value(self, "balance", new_balance)
         self.balance = new_balance
@@ -114,6 +118,11 @@ class BalanceItem(BaseModel):
         # Without this pydantic reads .00 out of the database
         # and truncates, so 100.00 shows up as 100
         self.balance = self.balance.quantize(ZERO)
+
+    def add_to_balance(self, db:DbAccess, change: Decimal) -> Decimal:
+        self.balance += change
+        db.update_value(self, "balance", self.balance)
+        return self.balance
 
 class AmountItem(BaseModel):
     amount: Decimal

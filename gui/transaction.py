@@ -1,11 +1,12 @@
 import streamlit as st
+import pandas as pd
 
 from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
 from expense_tracker.budget import Budget
-from expense_tracker.execute import execute_transaction, execute_transfer
+from expense_tracker.execute import execute_transaction, execute_transfer, invalidate_transaction
 from expense_tracker.common import ZERO, ONE, NEGATIVE_ONE
-from expense_tracker.transaction import Transaction
+from expense_tracker.transaction import Transaction, DbTransaction
 from helper_ui import (
     select_account,
     select_method,
@@ -13,6 +14,33 @@ from helper_ui import (
     select_category,
     taction_table,
 )
+
+def transaction(db: DbAccess):
+    modes = [
+        "Input",
+        "Delete",
+    ]
+
+    selected_mode = st.sidebar.radio(
+        "Transaction Mode",
+        options=modes,
+    )
+    if selected_mode == modes[0]:
+        transaction_input(db)
+    elif selected_mode == modes[1]:
+        delete(db)
+    else:
+        st.error(f"Unknown Mode: {selected_mode}")
+
+def delete(db: DbAccess):
+    delete_taction = st.number_input(
+        "Transaction to Delete",
+        min_value=0,
+        step=1,
+    )
+    st.write(DbTransaction.load_single(db, delete_taction).model_dump())
+    if st.button("Delete Transaction"):
+        invalidate_transaction(db, delete_taction)
 
 def transaction_input(db: DbAccess):
     st.markdown("## Transaction Input")
