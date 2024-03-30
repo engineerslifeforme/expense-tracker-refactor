@@ -25,6 +25,7 @@ def statement_scanning(db: DbAccess):
         "Upload",
         "Assignment",
         "Check",
+        "Invalidate",
     ]
     mode = st.sidebar.radio(
         "Statement Mode",
@@ -37,8 +38,22 @@ def statement_scanning(db: DbAccess):
     elif mode == options[2]:
         pass
         # TODO: Check UI
+    elif mode == options[3]:
+        invalidate(db)
     else:
         st.error(f"Unknown mode: {mode}")
+
+def invalidate(db: DbAccess):
+    statement_to_invalidate = st.number_input(
+        "Statement to Invalidate",
+        min_value=0,
+        step=1,
+    )
+    statement = DbStatement.load_single(db, statement_to_invalidate)
+    st.write(statement.model_dump())
+    if st.button("Invalidate"):
+        st.success(f"Invalidating statement {statement.id}")
+        statement.invalidate(db)
 
 def assign(db: DbAccess):
     st.markdown("### Assign Statements to Transactions")
@@ -220,7 +235,7 @@ def upload(db: DbAccess):
             )
             dataframe[debit_column] = dataframe[debit_column].fillna("0.00")
             try:
-                dataframe["debit"] = dataframe[debit_column].apply(Decimal)
+                dataframe["debit"] = dataframe[debit_column].apply(Decimal) * Decimal("-1")
             except:
                 middle.warning(f"Column `{debit_column}` cannot be converted to decimal")
             try:
