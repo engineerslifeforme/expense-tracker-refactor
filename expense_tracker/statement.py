@@ -28,12 +28,17 @@ class DbStatement(BaseStatement):
         )
     
     @classmethod
-    def load(cls, db: DbAccess, unmapped_taction: bool = False, account_id: int = None, where_list: list = None, **kwargs) -> list:
+    def load(cls, db: DbAccess, unmapped_taction: bool = False, account_id: int = None, taction_id: int = None, where_list: list = None, **kwargs) -> list:
         if account_id is not None:
             where_list = s_extend(where_list, [WhereDef(field="account_id", value=account_id)])
         if unmapped_taction:
             where_list = s_extend(where_list, [WhereDef(field="taction_id", value="null", is_null=True)])
+        if taction_id is not None:
+            where_list = s_extend(where_list, [WhereDef(field="taction_id", value=taction_id)])
         return super().load(db, where_list=where_list, **kwargs)
+    
+    def unmap_taction(self, db: DbAccess):
+        db.update_value(self, "taction_id", None)
 
 class Statement(BaseStatement):
     account: Account

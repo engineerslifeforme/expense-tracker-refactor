@@ -56,6 +56,14 @@ def balance(db: DbAccess):
         mapped_transactions = [s.taction_id for s in DbStatement.load(db)]
         transactions["mapped"] = transactions["id"].isin(mapped_transactions)
         st.write(transactions)
+        st.markdown("#### Removed Unampped from balance")
+        balance = Account.load_single(db, account_id).balance
+        for transaction in transactions[~transactions["mapped"]].to_dict(orient="records"):
+            if st.checkbox(f"Remove {transaction['id']} of ${transaction['amount']}"):
+                balance -= transaction["amount"]
+        st.markdown(f"New balance: ${balance}")
+            
+
 
 def invalidate(db: DbAccess):
     account_id_to_invalidate = st.number_input(

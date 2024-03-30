@@ -6,6 +6,8 @@ from expense_tracker.account import Account
 from expense_tracker.method import Method
 from expense_tracker.transaction import Transaction
 from expense_tracker.sub import Sub
+from expense_tracker.statement import DbStatement
+from expense_tracker.hsa_transactions import DbHsaTransaction
 from expense_tracker.budget import Budget
 from expense_tracker.common import ZERO, NEGATIVE_ONE
 
@@ -102,4 +104,10 @@ def invalidate_transaction(
     for sub in Sub.load(db, taction_id=transaction_id):
         sub.invalidate(db)
         sub.category.budget.add_to_balance(db, Decimal("-1") * sub.amount)
+    for statement in DbStatement.load(db, taction_id=transaction_id):
+        statement.unmap_taction(db)
+    for hsa_transaction in DbHsaTransaction.load(db, expense_taction_id=transaction_id):
+        hsa_transaction.unmap_expense_taction_id(db)
+    for hsa_transaction in DbHsaTransaction.load(db, distribution_taction_id=transaction_id):
+        hsa_transaction.unmap_distribution_taction_id(db)
 

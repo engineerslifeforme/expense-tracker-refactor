@@ -38,7 +38,7 @@ def delete(db: DbAccess):
         min_value=0,
         step=1,
     )
-    st.write(DbTransaction.load_single(db, delete_taction).model_dump())
+    st.write(Transaction.load_single(db, delete_taction).model_dump())
     if st.button("Delete Transaction"):
         st.success(f"Invalidating Transaction `{delete_taction}`")
         invalidate_transaction(db, delete_taction)

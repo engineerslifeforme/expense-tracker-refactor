@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import ClassVar, Optional
 
-from expense_tracker.common import DbItem, DateItem, AmountItem
-from expense_tracker.database import DbAccess
+from expense_tracker.common import DbItem, DateItem, AmountItem, s_extend
+from expense_tracker.database import DbAccess, WhereDef
 
 from expense_tracker.transaction import Transaction
 
@@ -34,8 +34,18 @@ class DbHsaTransaction(BaseHsaTransaction):
         return new
     
     @classmethod
-    def load(cls, db: DbAccess, **kwargs) -> list:
-        return super().load(db, **kwargs)
+    def load(cls, db: DbAccess, expense_taction_id: int = None, distribution_taction_id: int = None, where_list: list = None, **kwargs) -> list:
+        if expense_taction_id is not None:
+            where_list = s_extend(where_list, [WhereDef(field="expense_taction_id", value=expense_taction_id)])
+        if distribution_taction_id is not None:
+            where_list = s_extend(where_list, [WhereDef(field="distribution_taction_id", value=distribution_taction_id)])
+        return super().load(db, where_list=where_list, **kwargs)
+    
+    def unmap_expense_taction_id(self, db: DbAccess):
+        db.update_value(self, "expense_taction_id", None)
+
+    def unmap_distribution_taction_id(self, db: DbAccess):
+        db.update_value(self, "distribution_taction_id", None)
 
 class HsaTransaction(BaseHsaTransaction):
     expense_taction: Optional[Transaction] = None
