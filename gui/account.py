@@ -3,8 +3,10 @@ import pandas as pd
 
 from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
+from expense_tracker.transaction import DbTransaction
+from expense_tracker.statement import DbStatement
 
-from helper_ui import amount_input
+from helper_ui import amount_input, taction_table, select_account
 
 def account(db: DbAccess):
     options = [
@@ -47,6 +49,13 @@ def add(db: DbAccess):
 
 def balance(db: DbAccess):
     st.write(pd.DataFrame([i.model_dump() for i in Account.load(db)]))
+    if st.checkbox("Check Transactions"):
+        st.markdown("Recent Account Transactions")
+        account_id = select_account(db).id
+        transactions = pd.DataFrame([i.model_dump() for i in DbTransaction.load(db, account_id=account_id)])
+        mapped_transactions = [s.taction_id for s in DbStatement.load(db)]
+        transactions["mapped"] = transactions["id"].isin(mapped_transactions)
+        st.write(transactions)
 
 def invalidate(db: DbAccess):
     account_id_to_invalidate = st.number_input(
