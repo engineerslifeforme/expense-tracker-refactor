@@ -1,10 +1,11 @@
 from decimal import Decimal
 
 import streamlit as st
+import pandas as pd
 
 from expense_tracker.database import DbAccess
 from expense_tracker.transaction import Transaction
-from expense_tracker.sub import Sub
+from expense_tracker.sub import DbSub, Sub
 
 from helper_ui import (
     taction_table,
@@ -35,14 +36,14 @@ def search(db: DbAccess):
         sub_data_search(db)
 
 def sub_data_search(db: DbAccess):
-    amount = amount_input(allow_negative=True)
-    filter_category = st.checkbox("Filter Category")
-    if filter_category:
-        category_name = select_category(db).name
+    amount = None
+    if st.checkbox("Filter by Amount"):
+        amount = amount_input(allow_negative=True)
+    category_id = None
+    if st.checkbox("Filter Category"):
+        category_id = select_category(db).id
     if st.button("Search"):
-        matches = sub_table(Sub.load(db, amount=amount))
-        if filter_category:
-            matches = matches.loc[matches["category"] == category_name, :]        
+        matches = sub_table(Sub.upgrade_list(db, DbSub.load(db, amount=amount, category_id=category_id)))
         st.write(matches)
 
 def search_id(db: DbAccess):
@@ -58,7 +59,9 @@ def search_id(db: DbAccess):
     ]))
 
 def transaction_data_search(db: DbAccess):
-    amount = amount_input(allow_negative=True)
+    amount = None
+    if st.button("Filter on Amount"):
+        amount = amount_input(allow_negative=True)
     if st.button("Search"):
         matches = Transaction.load(db, amount=amount)
         if len(matches) > 0:
