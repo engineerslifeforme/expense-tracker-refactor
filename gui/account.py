@@ -1,3 +1,5 @@
+from datetime import date
+
 import streamlit as st
 import pandas as pd
 
@@ -52,7 +54,11 @@ def balance(db: DbAccess):
     if st.checkbox("Check Transactions"):
         st.markdown("Recent Account Transactions")
         account_id = select_account(db).id
-        transactions = pd.DataFrame([i.model_dump() for i in DbTransaction.load(db, account_id=account_id)])
+        transactions = pd.DataFrame([i.model_dump() for i in DbTransaction.load(
+            db, 
+            account_id=account_id,
+        )])
+        transactions = transactions.loc[transactions["date"] > (date.today() - pd.Timedelta(days=90)), :]
         mapped_transactions = [s.taction_id for s in DbStatement.load(db)]
         transactions["mapped"] = transactions["id"].isin(mapped_transactions)
         st.write(transactions)

@@ -100,6 +100,14 @@ class DbItem(BaseDbItem):
 class DateItem(BaseModel):
     date: date
 
+    @classmethod
+    def load(cls, *args, less_than_date: date = None, greater_than_date: date = None, where_list: list = None, **kwargs):
+        if less_than_date is not None:
+            where_list = s_extend(where_list, [WhereDef(field="date", value=less_than_date, comparator="<")])
+        if greater_than_date is not None:
+            where_list = s_extend(where_list, [WhereDef(field="date", value=greater_than_date, comparator=">")])
+        return super().load(*args, where_list=where_list, **kwargs)
+
 class NamedItem(BaseModel):
     name: str
 
