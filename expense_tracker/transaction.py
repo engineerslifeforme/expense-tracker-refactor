@@ -29,11 +29,13 @@ class DbTransaction(BaseTrasaction):
         )
     
     @classmethod
-    def load(cls, db: DbAccess, amount: Decimal = None, account_id: int = None, where_list: list = None, **kwargs) -> list:
+    def load(cls, db: DbAccess, amount: Decimal = None, account_id: int = None, description: str = None, where_list: list = None, **kwargs) -> list:
         if amount is not None:
             where_list = s_extend(where_list, [WhereDef(field="amount", value=amount)])        
         if account_id is not None:
-            where_list = s_extend(where_list, [WhereDef(field="account_id", value=account_id)])        
+            where_list = s_extend(where_list, [WhereDef(field="account_id", value=account_id)])
+        if description is not None:
+            where_list = s_extend(where_list, [WhereDef(field="description", value=description, comparator="LIKE")])
         return super().load(db, where_list=where_list, **kwargs)
 
 class Transaction(BaseTrasaction):

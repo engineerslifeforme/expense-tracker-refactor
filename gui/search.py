@@ -60,10 +60,16 @@ def search_id(db: DbAccess):
 
 def transaction_data_search(db: DbAccess):
     amount = None
-    if st.button("Filter on Amount"):
-        amount = amount_input(allow_negative=True)
+    left, right = st.columns(2)
+    if left.checkbox("Filter on Amount"):
+        amount = amount_input(allow_negative=True, st_container=right)
+    description = None
+    left, right = st.columns(2)
+    if left.checkbox("Filter Description"):
+        right.info("Remember to use `%` as wildcard")
+        description = right.text_input("Description Filter Content")
     if st.button("Search"):
-        matches = Transaction.load(db, amount=amount)
+        matches = Transaction.load(db, amount=amount, description=description)
         if len(matches) > 0:
             st.write(taction_table(matches))
         else:
