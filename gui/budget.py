@@ -8,6 +8,8 @@ from expense_tracker.database import DbAccess
 from expense_tracker.budget import Budget
 from expense_tracker.import_dates import ImportantDate
 from expense_tracker.budget_adjustments import DbBudgetAdjustment
+from expense_tracker.account import Account
+from expense_tracker.common import ZERO
 
 from helper_ui import select_budget
 
@@ -38,7 +40,19 @@ def budget(db: DbAccess):
 
 def budget_to_account(db: DbAccess):
     st.markdown("### Budget to Account Comparison")
-    
+    total_account_balance = sum([a.balance for a in Account.load(db)])
+    st.markdown(f"Total Account Balance: ${total_account_balance}")
+    visible_filter = None
+    if st.checkbox("Filter to Only Visible", value=True):
+        visible_filter = True
+    budgets = Budget.load(db, visibility=visible_filter)
+    positive_balance_total = sum([b.balance for b in budgets if b.balance > ZERO])
+    st.markdown(f"Total Positive Budget Balance: ${positive_balance_total}")
+    negative_balance_total = sum([b.balance for b in budgets if b.balance < ZERO])
+    st.markdown(f"Total Negative Budget Balance: ${negative_balance_total}")
+    net_budget_total = positive_balance_total + negative_balance_total
+    st.markdown(f"Net Budget Balance ${net_budget_total}")
+    st.markdown(f"Extra account headroom: ${net_budget_total}")
 
 def invisible(db: DbAccess):
     budget = select_budget(db)
