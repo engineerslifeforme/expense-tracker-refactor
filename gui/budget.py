@@ -9,11 +9,15 @@ from expense_tracker.budget import Budget
 from expense_tracker.import_dates import ImportantDate
 from expense_tracker.budget_adjustments import DbBudgetAdjustment
 
+from helper_ui import select_budget
+
 def budget(db: DbAccess):
     options = [
         "Invalidate",
         "Balance",
         "Update",
+        "Invisible",
+        "Budget to Account",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -25,8 +29,23 @@ def budget(db: DbAccess):
         balance(db)
     elif selected_view == options[2]:
         update(db)
+    elif selected_view == options[3]:
+        invisible(db)
+    elif selected_view == options[4]:
+        budget_to_account(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def budget_to_account(db: DbAccess):
+    st.markdown("### Budget to Account Comparison")
+    
+
+def invisible(db: DbAccess):
+    budget = select_budget(db)
+    st.write(budget.model_dump())
+    if st.button("Invisible"):
+        st.success(f"Setting visibility to `False` for Budget {budget.name} ({budget.id})")
+        budget.set_invisible(db)
 
 def update(db: DbAccess):
     st.markdown("### Update Budgets")
@@ -61,7 +80,11 @@ def update(db: DbAccess):
         st.success("All Budgets up to date!")
 
 def balance(db: DbAccess):
-    st.write(pd.DataFrame([i.model_dump() for i in Budget.load(db)]))
+    visibility_filter = None
+    if st.checkbox("Filter Invisible", value=True):
+        visibility_filter = True
+    budgets = Budget.load(db, visibility=visibility_filter)
+    st.write(pd.DataFrame([i.model_dump() for i in budgets]))
 
 def invalidate(db: DbAccess):
     budget_id_to_invalidate = st.number_input(

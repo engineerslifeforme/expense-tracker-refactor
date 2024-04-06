@@ -7,6 +7,7 @@ from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
 from expense_tracker.method import Method
 from expense_tracker.category import Category
+from expense_tracker.budget import Budget
 
 def select_account(db: DbAccess, **kwargs) -> Account:
     return _select(db, Account, "Account", **kwargs)
@@ -16,6 +17,9 @@ def select_method(db: DbAccess, **kwargs) -> Method:
 
 def select_category(db: DbAccess, **kwargs) -> Category:
     return _select(db, Category, "Category", **kwargs)
+
+def select_budget(db: DbAccess, **kwargs) -> Budget:
+    return _select(db, Budget, "Budget", **kwargs)
 
 def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_prefix: str = None, st_container = None):
     if st_container is None:

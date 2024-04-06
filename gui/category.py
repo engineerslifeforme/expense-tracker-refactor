@@ -1,12 +1,14 @@
 import streamlit as st
+import pandas as pd
 
 from expense_tracker.database import DbAccess
-from expense_tracker.category import Category
+from expense_tracker.category import Category, DbCategory
 
 def category(db: DbAccess):
     options = [
         "Data Check",
         "Invalidate",
+        "View",
     ]
     selected_mode = st.sidebar.radio(
         "Category Mode",
@@ -17,8 +19,13 @@ def category(db: DbAccess):
         check(db)
     elif selected_mode == options[1]:
         invalidate(db)
+    elif selected_mode == options[2]:
+        view(db)
     else:
         st.error(f"Unknown category mode: {selected_mode}")
+
+def view(db:DbAccess):
+    st.dataframe(pd.DataFrame([c.model_dump() for c in DbCategory.load(db)]))
 
 def invalidate(db: DbAccess):
     category_id_to_invalidate = st.number_input(
