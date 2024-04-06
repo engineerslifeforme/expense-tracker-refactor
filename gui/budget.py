@@ -1,13 +1,19 @@
+from datetime import date
+
 import streamlit as st
 import pandas as pd
+from stqdm import stqdm
 
 from expense_tracker.database import DbAccess
 from expense_tracker.budget import Budget
+from expense_tracker.import_dates import ImportantDate
+from expense_tracker.budget_adjustments import DbBudgetAdjustment
 
 def budget(db: DbAccess):
     options = [
         "Invalidate",
         "Balance",
+        "Update",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -17,8 +23,43 @@ def budget(db: DbAccess):
         invalidate(db)
     elif selected_view == options[1]:
         balance(db)
+    elif selected_view == options[2]:
+        update(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def update(db: DbAccess):
+    st.markdown("### Update Budgets")
+    last_update = ImportantDate.load(db, name="last_budget_update")[0]
+    st.write(last_update.model_dump())
+    today = date.today()
+    if last_update.date < date(today.year, today.month, 1):
+        st.warning(f"Budgets need updating!  Last update: {last_update.date}")
+        if st.button("Update Budgets!"):
+            budgets = Budget.load(db)
+            for budget in stqdm(budgets):
+                increment_add = budget.monthly_increment_amount
+                DbBudgetAdjustment(
+                    amount=increment_add,
+                    date=today,
+                    valid=True,
+                    id=db.get_next_id(DbBudgetAdjustment),
+                    transfer=False,
+                    periodic_update=True,
+                    budget_id=budget.id,
+                ).add_to_db(db)
+                budget.monthly_increment_balance(db, today)
+            st.success(f"{len(budgets)} Budgets Updated!")
+            new_month = last_update.date.month + 1
+            new_year = last_update.date.year
+            if new_month > 12:
+                new_month = 1
+                new_year += 1
+            new_update = date(new_year, new_month, 1)
+            st.success(f"Budgets updated to {new_update}")
+            last_update.change_date(db, new_update)
+    else:
+        st.success("All Budgets up to date!")
 
 def balance(db: DbAccess):
     st.write(pd.DataFrame([i.model_dump() for i in Budget.load(db)]))

@@ -1,5 +1,6 @@
 from decimal import Decimal
 from pathlib import Path
+from datetime import date
 import sqlite3
 
 from expense_tracker.database import DbAccess
@@ -8,6 +9,7 @@ from expense_tracker.budget import Budget
 from expense_tracker.category import Category
 from expense_tracker.method import Method
 from expense_tracker.common import ZERO
+from expense_tracker.import_dates import ImportantDate
 
 class DatabaseTest:
 
@@ -79,8 +81,19 @@ PRIMARY KEY (`id`)
 `valid` tinyint(1) DEFAULT NULL,
 PRIMARY KEY (`id`)
 )""")
+    con.execute("""CREATE TABLE `important_dates` (
+`name` text NOT NULL,
+`date` date NOT NULL, `valid` tinyint(1) DEFAULT NULL,
+PRIMARY KEY (`name`)
+)""")
     con.commit()
     db = DbAccess(db_path)
+    important_date = ImportantDate(
+        valid=True,
+        name="test date",
+        date=date(2024, 1, 1),
+    )
+    important_date.add_to_db(db)
     account = Account(
         balance=Decimal("100.00"),
         name="account",

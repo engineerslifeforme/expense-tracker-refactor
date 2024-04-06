@@ -78,7 +78,7 @@ class DbAccess(object):
 
     def update_value(self, object, field_name, new_value):
         value = new_value
-        if object.model_fields[field_name].annotation in [str, Optional[Path]]:
+        if object.model_fields[field_name].annotation in [str, Optional[Path], date]:
             value = "\"" + str(value) + "\""
         if new_value is None:
             value = "null"
