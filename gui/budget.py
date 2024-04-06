@@ -31,7 +31,6 @@ def budget(db: DbAccess):
 def update(db: DbAccess):
     st.markdown("### Update Budgets")
     last_update = ImportantDate.load(db, name="last_budget_update")[0]
-    st.write(last_update.model_dump())
     today = date.today()
     if last_update.date < date(today.year, today.month, 1):
         st.warning(f"Budgets need updating!  Last update: {last_update.date}")
