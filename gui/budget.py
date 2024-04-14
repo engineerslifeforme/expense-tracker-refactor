@@ -48,7 +48,27 @@ def budget(db: DbAccess):
         st.error(f"Unknown buget mode: {selected_view}")
 
 def add_new(db: DbAccess):
-    st.markdown("### Add New Budget TODO")
+    st.markdown("### Add New Budget")
+    name=st.text_input("Name")
+    balance=amount_input(label_suffix="Initial")
+    increment=amount_input(label_suffix="Increment")
+    frequency=st.selectbox("Frequency", options=["M", "Y"])
+    purpose=st.text_input("Purpose", value="Spending")
+    new_id = db.get_next_id(Budget)
+    if st.button("Add New Budget"):
+        Budget(
+            valid=True,
+            id=new_id,
+            name=name,
+            balance=balance,
+            increment=increment,
+            visibility=True,
+            frequency=frequency,
+            purpose=purpose,
+        ).add_to_db(db)
+        st.success(f"New Budget ({new_id}) Added!")
+        new_budget = Budget.load_single(db, new_id)
+        st.write(new_budget.model_dump())
 
 def update_fields(db: DbAccess):
     budget_to_update = select_budget(db)
