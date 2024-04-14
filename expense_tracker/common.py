@@ -111,6 +111,9 @@ class DateItem(BaseModel):
 class NamedItem(BaseModel):
     name: str
 
+    def change_name(self, db: DbAccess, new_name: str):
+        db.update_value(self, "name", new_name)
+
 class BalanceItem(BaseModel):
     balance: Decimal
 

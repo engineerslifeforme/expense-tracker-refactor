@@ -17,10 +17,12 @@ def budget(db: DbAccess):
     options = [
         "Invalidate",
         "Balance",
-        "Update",
+        "Monthly Update",
         "Invisible",
         "Budget to Account",
         "Budget Transfer",
+        "Update Fields",
+        "Add New",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -38,8 +40,47 @@ def budget(db: DbAccess):
         budget_to_account(db)
     elif selected_view == options[5]:
         budget_transfer(db)
+    elif selected_view == options[6]:
+        update_fields(db)
+    elif selected_view == options[7]:
+        add_new(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def add_new(db: DbAccess):
+    st.markdown("### Add New Budget TODO")
+
+def update_fields(db: DbAccess):
+    budget_to_update = select_budget(db)
+    st.write(budget_to_update.model_dump())
+    if st.checkbox("Update Balance"):
+        add_amount = amount_input(label_suffix="To Add")
+        st.markdown(f"New Balance: ${budget_to_update.balance + add_amount}")
+        if st.button("Update Balance"):
+            DbBudgetAdjustment(
+                amount=add_amount,
+                date=date.today(),
+                valid=True,
+                id=db.get_next_id(DbBudgetAdjustment),
+                transfer=False,
+                periodic_update=False,
+                budget_id=budget_to_update.id,
+            ).add_to_db(db)
+            budget_to_update.add_to_balance(db, add_amount)
+            budget_to_update = Budget.load_single(db, budget_to_update.id)
+            st.success(f"Balance updated to {budget_to_update.balance}")
+    if st.checkbox("Update Increment"):
+        increment_amount = amount_input(label_suffix="Increment")
+        if st.button("Update Increment"):
+            budget_to_update.change_increment(db, increment_amount)
+            budget_to_update = Budget.load_single(db, budget_to_update.id)
+            st.success(f"Increment updated to {budget_to_update.increment}")
+    if st.checkbox("Update Name"):
+        new_name = st.text_input("New Budget Name")
+        if st.button("Update Name"):
+            budget_to_update.change_name(db, new_name)
+            budget_to_update = Budget.load_single(db, budget_to_update.id)
+            st.success(f"New name: {budget_to_update.name}")
 
 def budget_transfer(db: DbAccess):
     st.markdown("### Budget Transfer")

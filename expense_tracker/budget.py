@@ -40,4 +40,7 @@ class Budget(DbItem, NamedItem, BalanceItem):
 
     def set_invisible(self, db: DbAccess):
         db.update_value(self, "visibility", False)
+
+    def change_increment(self, db: DbAccess, new_increment: Decimal):
+        db.update_value(self, "increment", new_increment)
         
