@@ -8,7 +8,7 @@ from typing import ClassVar, Optional, Union
 from expense_tracker.database import DbAccess, WhereDef
 
 ONE = Decimal("1.00")
-NEGATIVE_ONE = Decimal("-1.00")
+NEGATIVE_ONE = Decimal("-1")
 ZERO = Decimal("0.00")
 
 def s_extend(current_list: list, new_list: list) -> list:

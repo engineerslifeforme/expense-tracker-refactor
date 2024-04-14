@@ -9,9 +9,9 @@ from expense_tracker.budget import Budget
 from expense_tracker.import_dates import ImportantDate
 from expense_tracker.budget_adjustments import DbBudgetAdjustment
 from expense_tracker.account import Account
-from expense_tracker.common import ZERO
+from expense_tracker.common import ZERO, NEGATIVE_ONE
 
-from helper_ui import select_budget
+from helper_ui import select_budget, amount_input
 
 def budget(db: DbAccess):
     options = [
@@ -20,6 +20,7 @@ def budget(db: DbAccess):
         "Update",
         "Invisible",
         "Budget to Account",
+        "Budget Transfer",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -35,8 +36,58 @@ def budget(db: DbAccess):
         invisible(db)
     elif selected_view == options[4]:
         budget_to_account(db)
+    elif selected_view == options[5]:
+        budget_transfer(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def budget_transfer(db: DbAccess):
+    st.markdown("### Budget Transfer")
+    left, right = st.columns(2)
+    withdraw_budget = select_budget(
+        db,
+        label_prefix="Withdrawal",
+        st_container=left,
+    )
+    right.markdown(f"Balance: ${withdraw_budget.balance}")
+    left, right = st.columns(2)
+    deposit_budget = select_budget(
+        db,
+        label_prefix="Deposit",
+        st_container=left,
+    )
+    right.markdown(f"Balance: ${deposit_budget.balance}")
+    amount = amount_input()
+    st.markdown(f"Budget {withdraw_budget.name} new balance: ${withdraw_budget.balance - amount}")
+    st.markdown(f"Budget {deposit_budget.name} new balance: ${deposit_budget.balance + amount}")
+    if st.button("Transfer"):
+        today = date.today()
+        st.success("Transfer")
+        DbBudgetAdjustment(
+            amount=amount,
+            date=today,
+            valid=True,
+            id=db.get_next_id(DbBudgetAdjustment),
+            transfer=True,
+            periodic_update=False,
+            budget_id=deposit_budget.id,
+        ).add_to_db(db)
+        deposit_budget.add_to_balance(db, amount)
+        negative_amount = amount * NEGATIVE_ONE
+        DbBudgetAdjustment(
+            amount=negative_amount,
+            date=today,
+            valid=True,
+            id=db.get_next_id(DbBudgetAdjustment),
+            transfer=True,
+            periodic_update=False,
+            budget_id=withdraw_budget.id,
+        ).add_to_db(db)
+        withdraw_budget.add_to_balance(db, negative_amount)
+        withdraw_budget = Budget.load_single(db, withdraw_budget.id)
+        deposit_budget = Budget.load_single(db, deposit_budget.id)
+        st.markdown(f"New {withdraw_budget.name} balance: ${withdraw_budget.balance}")
+        st.markdown(f"New {deposit_budget.name} balance: ${deposit_budget.balance}")
 
 def budget_to_account(db: DbAccess):
     st.markdown("### Budget to Account Comparison")
