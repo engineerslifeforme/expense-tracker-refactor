@@ -10,7 +10,7 @@ from expense_tracker.common import (
 from expense_tracker.database import DbAccess, WhereDef
 from expense_tracker.common import ZERO, s_extend
 
-class Budget(DbItem, NamedItem, BalanceItem):
+class Budget(NamedItem, BalanceItem, DbItem):
     visibility: bool
     frequency: str # TODO Consider string enum
     increment: Decimal

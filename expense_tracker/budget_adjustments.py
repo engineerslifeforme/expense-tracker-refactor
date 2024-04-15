@@ -4,7 +4,7 @@ from expense_tracker.common import DbItem, DateItem, AmountItem
 from expense_tracker.budget import Budget
 from expense_tracker.database import DbAccess
 
-class BaseBudgetAdjustment(DbItem, DateItem, AmountItem):
+class BaseBudgetAdjustment(DateItem, AmountItem, DbItem):
     transfer: bool
     periodic_update: bool
     description: str

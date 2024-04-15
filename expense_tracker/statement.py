@@ -5,7 +5,7 @@ from expense_tracker.account import Account
 from expense_tracker.database import DbAccess, WhereDef
 from expense_tracker.transaction import Transaction
 
-class BaseStatement(DbItem, AmountItem, DateItem):
+class BaseStatement(AmountItem, DateItem, DbItem):
     statement_month: int
     statement_year: int
     description: str

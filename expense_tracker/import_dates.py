@@ -9,7 +9,7 @@ from expense_tracker.common import (
 )
 from expense_tracker.database import DbAccess, WhereDef
 
-class ImportantDate(DbItem, DateItem, NamedItem):
+class ImportantDate(DateItem, NamedItem, DbItem):
     table_name: ClassVar[str] = "important_dates"
     
     @classmethod

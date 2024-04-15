@@ -101,11 +101,15 @@ class DateItem(BaseModel):
     date: date
 
     @classmethod
-    def load(cls, *args, less_than_date: date = None, greater_than_date: date = None, where_list: list = None, **kwargs):
+    def load(cls, *args, less_than_date: date = None, less_equal_date: date = None, greater_than_date: date = None, greater_equal_date: date = None, where_list: list = None, **kwargs):
         if less_than_date is not None:
             where_list = s_extend(where_list, [WhereDef(field="date", value=less_than_date, comparator="<")])
+        if less_equal_date is not None:
+            where_list = s_extend(where_list, [WhereDef(field="date", value=less_equal_date, comparator="<=")])
         if greater_than_date is not None:
             where_list = s_extend(where_list, [WhereDef(field="date", value=greater_than_date, comparator=">")])
+        if greater_equal_date is not None:
+            where_list = s_extend(where_list, [WhereDef(field="date", value=greater_equal_date, comparator=">=")])
         return super().load(*args, where_list=where_list, **kwargs)
 
 class NamedItem(BaseModel):

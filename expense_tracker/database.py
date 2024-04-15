@@ -20,8 +20,8 @@ class WhereDef(BaseModel):
         if self.is_null:
             self.comparator = "IS"
             value = "NULL"
-        elif type(self.value) == str:
-            value = "\"" + self.value + "\""
+        elif type(self.value) == str or type(self.value) == date:
+            value = f"\"{self.value}\""
         return f"{self.field} {self.comparator} {value}"
 
 class DbAccess(object):

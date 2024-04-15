@@ -6,7 +6,7 @@ from expense_tracker.database import DbAccess, WhereDef
 from expense_tracker.account import Account
 from expense_tracker.method import Method
 
-class BaseTrasaction(DbItem, AmountItem, DateItem):
+class BaseTrasaction(AmountItem, DateItem, DbItem):
     transfer: bool
     description: str
     receipt: bool

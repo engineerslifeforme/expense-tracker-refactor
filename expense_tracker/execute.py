@@ -82,6 +82,7 @@ def execute_transaction(
             not_real=False,
             category=category,
             taction=taction,
+            date=taction_date,
         )
         sub.add_to_db(db)
         budget = Budget.load_single(db, sub.category.budget.id)

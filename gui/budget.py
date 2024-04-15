@@ -10,6 +10,7 @@ from expense_tracker.import_dates import ImportantDate
 from expense_tracker.budget_adjustments import DbBudgetAdjustment
 from expense_tracker.account import Account
 from expense_tracker.common import ZERO, NEGATIVE_ONE
+from expense_tracker.sub import DbSub
 
 from helper_ui import select_budget, amount_input
 

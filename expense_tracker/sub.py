@@ -3,12 +3,12 @@ from decimal import Decimal
 
 import pandas as pd
 
-from expense_tracker.common import DbItem, s_extend, AmountItem
+from expense_tracker.common import DbItem, s_extend, AmountItem, DateItem
 from expense_tracker.category import Category
 from expense_tracker.transaction import Transaction
 from expense_tracker.database import DbAccess, WhereDef
 
-class BaseSub(DbItem, AmountItem):
+class BaseSub(AmountItem, DateItem, DbItem):
     not_real: bool
     table_name: ClassVar[str] = "sub"
 
@@ -36,7 +36,7 @@ class DbSub(BaseSub):
         if category_id is not None:
             where_list = s_extend(where_list, [WhereDef(field="category_id", value=category_id)])
         if amount is not None:
-            where_list = s_extend(where_list, [WhereDef(field="amount", value=amount)])        
+            where_list = s_extend(where_list, [WhereDef(field="amount", value=amount)])     
         return super().load(db, where_list=where_list, **kwargs)
     
     @classmethod

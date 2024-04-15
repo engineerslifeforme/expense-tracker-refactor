@@ -8,7 +8,7 @@ from expense_tracker.common import (
 from expense_tracker.budget import Budget
 from expense_tracker.database import DbAccess
 
-class BaseCategory(DbItem, NamedItem):
+class BaseCategory(NamedItem, DbItem):
     table_name: ClassVar[str] = "category"
 
 class DbCategory(BaseCategory):

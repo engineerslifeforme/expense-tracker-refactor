@@ -7,7 +7,7 @@ from expense_tracker.common import (
 )
 from expense_tracker.database import DbAccess
 
-class Account(DbItem, NamedItem, BalanceItem):
+class Account(NamedItem, BalanceItem, DbItem):
     visibility: bool
     purpose: str
     table_name: ClassVar[str] = "account"

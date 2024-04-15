@@ -6,7 +6,7 @@ from expense_tracker.database import DbAccess, WhereDef
 
 from expense_tracker.transaction import Transaction
 
-class BaseHsaTransaction(DbItem, DateItem, AmountItem):
+class BaseHsaTransaction(DateItem, AmountItem, DbItem):
     unique_identifier: str
     receipt_path: Optional[Path] = None
     eob_path: Optional[Path] = None
