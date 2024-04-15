@@ -37,6 +37,8 @@ def category(db: DbAccess):
 def analyze(db: DbAccess):
     st.markdown("### Analyze")
     category_to_analyze = select_category(db)
+    with st.expander("Category Details"):
+        st.write(category_to_analyze.model_dump())
     if st.checkbox("Analyze Monthly"):
         left, right = st.columns(2)
         start_month = left.number_input("Start Month", min_value=1, step=1, max_value=12)
@@ -55,10 +57,15 @@ def analyze(db: DbAccess):
             df = pd.DataFrame([s.model_dump() for s in DbSub.load(db, less_than_date=end, greater_equal_date=start, category_id=category_to_analyze.id)])
             df["date"] = pd.to_datetime(df["date"])
             if remove_deposits:
-                df = df.loc[df["amount"] > ZERO, :]
+                df = df.loc[df["amount"] < ZERO, :]
             df["year"] = df["date"].dt.year
             df["month"] = df["date"].dt.month
             df["month_label"] = df["year"].astype(str) + "-" + df["month"].astype(str)
+            group_month = df[["amount", "month_label"]].groupby(by="month_label").sum()
+            st.markdown(f"{len(group_month)} Months")
+            st.markdown(f"Monthly Average: `${group_month['amount'].mean()}`")
+            st.markdown(f"Average Expense: `${df['amount'].mean()}`")
+            st.markdown(f"Budget {category_to_analyze.budget.name} has increment ${category_to_analyze.budget.increment} with frequency {category_to_analyze.budget.frequency}")
             st.plotly_chart(px.bar(
                 df,
                 x="month_label",

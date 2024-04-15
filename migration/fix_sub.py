@@ -22,3 +22,9 @@ for sub in tqdm(df.to_dict(orient="records")):
     taction = DbTransaction.load_single(db, sub["taction_id"])
     db.con.execute(f"UPDATE sub SET date=\"{taction.date}\" WHERE id={sub['id']}")
     db.con.commit()
+
+for sub in tqdm(pd.read_sql_query("SELECT * FROM sub", db.con).to_dict(orient="records")):
+    if len(sub["date"]) > 10:
+        sql = f"UPDATE sub SET date=\"{sub['date'][0:10]}\" WHERE id={sub['id']}"
+        db.con.execute(sql)
+        db.con.commit()
