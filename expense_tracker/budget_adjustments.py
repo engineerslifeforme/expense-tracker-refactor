@@ -7,6 +7,7 @@ from expense_tracker.database import DbAccess
 class BaseBudgetAdjustment(DbItem, DateItem, AmountItem):
     transfer: bool
     periodic_update: bool
+    description: str
     table_name: ClassVar[str] = "budget_adjustments"
 
 class DbBudgetAdjustment(BaseBudgetAdjustment):

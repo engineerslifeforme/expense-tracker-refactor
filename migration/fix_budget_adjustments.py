@@ -16,3 +16,9 @@ try:
     db.con.commit()
 except:
     print("failed to fix budget_adjustments")
+
+try:
+    db.con.execute("ALTER TABLE budget_adjustments ADD COLUMN `description` text DEFAULT NULL")
+    db.con.commit()
+except:
+    print("failed to fix description budget_adjustments")

@@ -75,6 +75,7 @@ def update_fields(db: DbAccess):
     st.write(budget_to_update.model_dump())
     if st.checkbox("Update Balance"):
         add_amount = amount_input(label_suffix="To Add")
+        notes = st.text_input("Optional Adjustment Notes")
         st.markdown(f"New Balance: ${budget_to_update.balance + add_amount}")
         if st.button("Update Balance"):
             DbBudgetAdjustment(
@@ -85,6 +86,7 @@ def update_fields(db: DbAccess):
                 transfer=False,
                 periodic_update=False,
                 budget_id=budget_to_update.id,
+                description=notes,
             ).add_to_db(db)
             budget_to_update.add_to_balance(db, add_amount)
             budget_to_update = Budget.load_single(db, budget_to_update.id)
@@ -119,6 +121,7 @@ def budget_transfer(db: DbAccess):
     )
     right.markdown(f"Balance: ${deposit_budget.balance}")
     amount = amount_input()
+    notes = st.text_input("Optional adjustment notes")
     st.markdown(f"Budget {withdraw_budget.name} new balance: ${withdraw_budget.balance - amount}")
     st.markdown(f"Budget {deposit_budget.name} new balance: ${deposit_budget.balance + amount}")
     if st.button("Transfer"):
@@ -132,6 +135,7 @@ def budget_transfer(db: DbAccess):
             transfer=True,
             periodic_update=False,
             budget_id=deposit_budget.id,
+            description=notes,
         ).add_to_db(db)
         deposit_budget.add_to_balance(db, amount)
         negative_amount = amount * NEGATIVE_ONE
@@ -143,6 +147,7 @@ def budget_transfer(db: DbAccess):
             transfer=True,
             periodic_update=False,
             budget_id=withdraw_budget.id,
+            description=notes,
         ).add_to_db(db)
         withdraw_budget.add_to_balance(db, negative_amount)
         withdraw_budget = Budget.load_single(db, withdraw_budget.id)
@@ -164,7 +169,7 @@ def budget_to_account(db: DbAccess):
     st.markdown(f"Total Negative Budget Balance: ${negative_balance_total}")
     net_budget_total = positive_balance_total + negative_balance_total
     st.markdown(f"Net Budget Balance ${net_budget_total}")
-    st.markdown(f"Extra account headroom: ${net_budget_total}")
+    st.markdown(f"Extra account headroom: ${total_account_balance - net_budget_total}")
 
 def invisible(db: DbAccess):
     budget = select_budget(db)
@@ -181,6 +186,12 @@ def update(db: DbAccess):
         st.warning(f"Budgets need updating!  Last update: {last_update.date}")
         if st.button("Update Budgets!"):
             budgets = Budget.load(db)
+            new_month = last_update.date.month + 1
+            new_year = last_update.date.year
+            if new_month > 12:
+                new_month = 1
+                new_year += 1
+            new_update = date(new_year, new_month, 1)
             for budget in stqdm(budgets):
                 increment_add = budget.monthly_increment_amount
                 DbBudgetAdjustment(
@@ -191,15 +202,10 @@ def update(db: DbAccess):
                     transfer=False,
                     periodic_update=True,
                     budget_id=budget.id,
+                    description=f"Periodic update for {new_update}"
                 ).add_to_db(db)
                 budget.monthly_increment_balance(db, today)
             st.success(f"{len(budgets)} Budgets Updated!")
-            new_month = last_update.date.month + 1
-            new_year = last_update.date.year
-            if new_month > 12:
-                new_month = 1
-                new_year += 1
-            new_update = date(new_year, new_month, 1)
             st.success(f"Budgets updated to {new_update}")
             last_update.change_date(db, new_update)
     else:
