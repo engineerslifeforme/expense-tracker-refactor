@@ -103,6 +103,31 @@ def analyze(db: DbAccess):
             ))
             if show_data_table:
                 st.write(df)
+    if st.checkbox("Analyze Yearly"):
+        start = date(
+            st.number_input("Start Year", value=2023, step=1),
+            1,
+            1,
+        )
+        end = date(
+            st.number_input("End Year", value=2024, step=1),
+            12,
+            31,
+        )
+        remove_deposits = st.checkbox("Remove Deposits")
+        if st.button("Analyze"):
+            df = pd.DataFrame([s.model_dump() for s in DbSub.load(db, less_equal_date=end, greater_equal_date=start, category_id=category_to_analyze.id)])
+            df["date"] = pd.to_datetime(df["date"])
+            if remove_deposits:
+                df = df.loc[df["amount"] < ZERO, :]
+            df["year"] = df["date"].dt.year
+            plot_data = [
+                go.Bar(x=df["year"], y=df["amount"])
+            ]
+            st.plotly_chart(go.Figure(
+                data=plot_data,
+            ))
+            
 
 def view(db:DbAccess):
     st.dataframe(pd.DataFrame([c.model_dump() for c in DbCategory.load(db)]))
