@@ -3,6 +3,7 @@ from datetime import date
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from expense_tracker.database import DbAccess
 from expense_tracker.category import Category, DbCategory
@@ -39,6 +40,26 @@ def analyze(db: DbAccess):
     category_to_analyze = select_category(db)
     with st.expander("Category Details"):
         st.write(category_to_analyze.model_dump())
+    if st.checkbox("Analyze Daily"):
+        left, right = st.columns(2)
+        start = left.date_input("Start Date")
+        end = right.date_input("End Date")
+        df = pd.DataFrame([s.model_dump() for s in DbSub.load(db, less_equal_date=end, greater_equal_date=start, category_id=category_to_analyze.id)])
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.sort_values(by="date")
+        #st.write(df)
+        rolling_average = st.checkbox("Add Rolling Average")
+        if rolling_average:
+            rolling_average_window = st.number_input("Rolling Average Window", min_value=1, step=1)
+        plot_data = [
+            go.Scatter(x=df["date"], y=df["amount"])
+        ]
+        if rolling_average:
+                df["rolling_average_amount"] = df["amount"].rolling(rolling_average_window).mean()
+                plot_data.append(go.Scatter(x=df["date"], y=df["rolling_average_amount"], line=dict(color='orange', width=1)))
+        st.plotly_chart(go.Figure(
+            data=plot_data,
+        ))
     if st.checkbox("Analyze Monthly"):
         left, right = st.columns(2)
         start_month = left.number_input("Start Month", min_value=1, step=1, max_value=12)
@@ -53,6 +74,9 @@ def analyze(db: DbAccess):
         end = date(end_year, end_month, 1)
         remove_deposits = st.checkbox("Remove Deposits")
         show_data_table = st.checkbox("Show Data Table")
+        rolling_average = st.checkbox("Add Rolling Average")
+        if rolling_average:
+            rolling_average_window = st.number_input("Rolling Average Window", min_value=1, step=1)
         if st.button("Analyze"):
             df = pd.DataFrame([s.model_dump() for s in DbSub.load(db, less_than_date=end, greater_equal_date=start, category_id=category_to_analyze.id)])
             df["date"] = pd.to_datetime(df["date"])
@@ -61,15 +85,21 @@ def analyze(db: DbAccess):
             df["year"] = df["date"].dt.year
             df["month"] = df["date"].dt.month
             df["month_label"] = df["year"].astype(str) + "-" + df["month"].astype(str)
-            group_month = df[["amount", "month_label"]].groupby(by="month_label").sum()
+            group_month = df[["amount", "month_label"]].groupby(by="month_label").sum().reset_index(drop=False)
+            group_month["date"] = pd.to_datetime(group_month["month_label"])
+            group_month = group_month.sort_values(by="date")
             st.markdown(f"{len(group_month)} Months")
             st.markdown(f"Monthly Average: `${group_month['amount'].mean()}`")
             st.markdown(f"Average Expense: `${df['amount'].mean()}`")
             st.markdown(f"Budget {category_to_analyze.budget.name} has increment ${category_to_analyze.budget.increment} with frequency {category_to_analyze.budget.frequency}")
-            st.plotly_chart(px.bar(
-                df,
-                x="month_label",
-                y="amount",
+            plot_data = [
+                go.Bar(x=df["month_label"], y=df["amount"])
+            ]
+            if rolling_average:
+                group_month["rolling_average_amount"] = group_month["amount"].rolling(rolling_average_window).mean()
+                plot_data.append(go.Scatter(x=group_month["month_label"], y=group_month["rolling_average_amount"], line=dict(color='orange', width=1)))
+            st.plotly_chart(go.Figure(
+                data=plot_data,
             ))
             if show_data_table:
                 st.write(df)
