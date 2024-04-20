@@ -26,8 +26,9 @@ def statement_scanning(db: DbAccess):
         "Assignment",
         "Check",
         "Invalidate",
-        "Search",
+        "Search Statement Actions",
         "Unmap Transaction",
+        "Search Transactions",
     ]
     mode = st.sidebar.radio(
         "Statement Mode",
@@ -45,9 +46,23 @@ def statement_scanning(db: DbAccess):
         search(db)
     elif mode == options[5]:
         unmap_transaction(db)
+    elif mode == options[6]:
+        search_transactions(db)
     else:
         st.error(f"Unknown mode: {mode}")
 
+def search_transactions(db: DbAccess):
+    start = st.date_input("Start Date")
+    end = st.date_input("End Date")
+    account_id = None
+    if st.checkbox("Filter Account"):
+        account_id = select_account(db).id
+    transactions = pd.DataFrame([t.model_dump() for t in DbTransaction.load(db, account_id=account_id, less_equal_date=end, greater_equal_date=start)])
+    statements = pd.DataFrame([s.model_dump() for s in DbStatement.load(db, less_equal_date=end, greater_equal_date=start)])
+    filtered = transactions.loc[~transactions["id"].isin(statements["taction_id"]), :]
+    st.markdown(f"Transactions not mapped to statements: ({len(filtered)} of {len(transactions)})")
+    st.write(filtered)
+    
 def unmap_transaction(db: DbAccess):
     statement_to_unmap = st.number_input(
         "Statement ID to unmap Transaction",
