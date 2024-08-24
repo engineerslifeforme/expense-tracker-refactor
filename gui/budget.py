@@ -3,11 +3,13 @@ from datetime import date
 import streamlit as st
 import pandas as pd
 from stqdm import stqdm
+import plotly.express as px
 
 from expense_tracker.database import DbAccess
 from expense_tracker.budget import Budget
 from expense_tracker.import_dates import ImportantDate
 from expense_tracker.budget_adjustments import DbBudgetAdjustment
+from expense_tracker.budget_profile import BudgetProfile, DbBudgetProfile
 from expense_tracker.account import Account
 from expense_tracker.common import ZERO, NEGATIVE_ONE
 from expense_tracker.sub import DbSub
@@ -24,6 +26,7 @@ def budget(db: DbAccess):
         "Budget Transfer",
         "Update Fields",
         "Add New",
+        "Budget Profiles",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -45,8 +48,39 @@ def budget(db: DbAccess):
         update_fields(db)
     elif selected_view == options[7]:
         add_new(db)
+    elif selected_view == options[8]:
+        budget_profile(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def budget_profile(db: DbAccess):
+    st.markdown("## Budget Profiles")
+    options = [
+        "View Profiles",
+    ]
+    selected_view = st.sidebar.radio("Budget Profile", options=options)
+    if selected_view == options[0]:
+        st.markdown("### View Profiles")
+        profiles = DbBudgetProfile.load(db)
+        if st.sidebar.checkbox("View Profiles as Table"):
+            st.markdown("Profiles as raw table")
+            st.write(pd.DataFrame([bp.model_dump() for bp in profiles]))
+        if st.sidebar.checkbox("View Profile Details"):
+            st.markdown("Profile details")
+            upgraded_profles = BudgetProfile.load(db)
+            profile_map = {p.budget.name: p for p in upgraded_profles}
+            selected_profile = profile_map[
+                st.selectbox(
+                    "Select Budget Profile",
+                    options = list(profile_map.keys()),
+                )
+            ]
+            st.markdown(f"Budget: {selected_profile.budget.name} ({selected_profile.budget.id})")
+            st.plotly_chart(px.line(
+                x = selected_profile.month_labels,
+                y = selected_profile.month_values,
+            ))
+        #     upgraded_profiles = [p.upgrade]
 
 def add_new(db: DbAccess):
     st.markdown("### Add New Budget")
