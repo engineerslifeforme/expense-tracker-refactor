@@ -90,7 +90,14 @@ def budget_status(db: DbAccess):
             else:
                 model_dump["status"] = "OK"
         display_list.append(model_dump)
-    st.write(pd.DataFrame(display_list))
+    data = pd.DataFrame(display_list)
+    status_filter = st.selectbox(
+        "Status Filter",
+        options=["None"] + list(data["status"].unique())
+    )
+    if status_filter != "None":
+        data = data.loc[data["status"] == status_filter, :]
+    st.write(data)
 
 def budget_profile(db: DbAccess):
     st.markdown("## Budget Profiles")
