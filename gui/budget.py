@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import streamlit as st
 import pandas as pd
@@ -27,6 +28,7 @@ def budget(db: DbAccess):
         "Update Fields",
         "Add New",
         "Budget Profiles",
+        "Budget Status",
     ]
     selected_view = st.sidebar.radio(
         "Budget Tool",
@@ -50,8 +52,45 @@ def budget(db: DbAccess):
         add_new(db)
     elif selected_view == options[8]:
         budget_profile(db)
+    elif selected_view == options[9]:
+        budget_status(db)
     else:
         st.error(f"Unknown buget mode: {selected_view}")
+
+def budget_status(db: DbAccess):
+    st.markdown("## Budget Status")
+    month = date.today().month
+    st.markdown(f"Evaluating based on month: {month}")
+    prev_month = month - 1
+    if prev_month == 0:
+        prev_month = 12
+    next_month = month + 1
+    if next_month == 13:
+        next_month = 1
+
+    budgets = Budget.load(db, visibility=True)
+    budget_profiles = DbBudgetProfile.load(db)
+    profile_map = {bp.budget_id: bp for bp in budget_profiles}
+    display_list = []
+    for budget in budgets:
+        model_dump = budget.model_dump()
+        try:
+            profile_month = profile_map[budget.id].model_dump()[f"month_{month}"]
+            model_dump["expected_budget"] = profile_month
+            if budget.balance > profile_month * Decimal("0.9") and budget.balance < profile_month * Decimal("1.1"):
+                model_dump["status"] = "ON BUDGET"
+            else:
+                model_dump["status"] = "OFF BUDGET"
+        except KeyError:
+            # No profile
+            if budget.balance > (2 * budget.monthly_increment_amount):
+                model_dump["status"] = "EXTRA"
+            elif budget.balance < (-1 * budget.monthly_increment_amount):
+                model_dump["status"] = "OVERSPENT"
+            else:
+                model_dump["status"] = "OK"
+        display_list.append(model_dump)
+    st.write(pd.DataFrame(display_list))
 
 def budget_profile(db: DbAccess):
     st.markdown("## Budget Profiles")
@@ -80,7 +119,6 @@ def budget_profile(db: DbAccess):
                 x = selected_profile.month_labels,
                 y = selected_profile.month_values,
             ))
-        #     upgraded_profiles = [p.upgrade]
 
 def add_new(db: DbAccess):
     st.markdown("### Add New Budget")
