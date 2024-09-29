@@ -7,8 +7,9 @@ import plotly.graph_objects as go
 
 from expense_tracker.database import DbAccess
 from expense_tracker.category import Category, DbCategory
-from expense_tracker.sub import DbSub
+from expense_tracker.sub import DbSub, Sub
 from expense_tracker.common import ZERO
+from expense_tracker.execute import change_sub_budget
 
 from helper_ui import select_category
 
@@ -18,6 +19,7 @@ def category(db: DbAccess):
         "Invalidate",
         "View",
         "Analyze",
+        "Switch Sub",
     ]
     selected_mode = st.sidebar.radio(
         "Category Mode",
@@ -32,8 +34,25 @@ def category(db: DbAccess):
         view(db)
     elif selected_mode == options[3]:
         analyze(db)
+    elif selected_mode == options[4]:
+        switch_sub_category(db)
     else:
         st.error(f"Unknown category mode: {selected_mode}")
+
+def switch_sub_category(db: DbAccess):
+    st.markdown("### Switch Sub Category")
+    sub_id = st.number_input("Sub ID", step=1)
+    selected_sub = None
+    if sub_id != 0:
+        selected_sub = Sub.upgrade_list(db, [DbSub.load_single(db, sub_id)])[0]
+        st.write(selected_sub)
+    new_category = select_category(db)
+    if st.button("Switch Category"):
+        if selected_sub is not None:
+            change_sub_budget(db, selected_sub, new_category)
+            st.success("Budget changed!")
+        else:
+            st.error("Selected sub is not assigned!")
 
 def analyze(db: DbAccess):
     st.markdown("### Analyze")

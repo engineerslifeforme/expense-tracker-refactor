@@ -5,11 +5,12 @@ from expense_tracker.database import DbAccess
 from expense_tracker.account import Account
 from expense_tracker.method import Method
 from expense_tracker.transaction import Transaction
-from expense_tracker.sub import Sub
+from expense_tracker.sub import Sub, DbSub
 from expense_tracker.statement import DbStatement
 from expense_tracker.hsa_transactions import DbHsaTransaction
 from expense_tracker.budget import Budget
 from expense_tracker.common import ZERO, NEGATIVE_ONE
+from expense_tracker.category import Category
 
 def execute_transfer(
     db: DbAccess,
@@ -111,4 +112,11 @@ def invalidate_transaction(
         hsa_transaction.unmap_expense_taction_id(db)
     for hsa_transaction in DbHsaTransaction.load(db, distribution_taction_id=transaction_id):
         hsa_transaction.unmap_distribution_taction_id(db)
+
+def change_sub_budget(db: DbAccess, sub: Sub, new_category: Category):
+    # Fix databae budgets as well
+    sub.category.budget.add_to_balance(db, Decimal("-1") * sub.amount)
+    new_category.budget.add_to_balance(db, sub.amount)
+    db_sub = DbSub.load_single(db, sub.id)
+    db_sub.change_category_id(db, new_category.id)
 

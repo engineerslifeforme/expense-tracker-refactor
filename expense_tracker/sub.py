@@ -42,6 +42,9 @@ class DbSub(BaseSub):
     @classmethod
     def df_to_list(cls, df: pd.DataFrame) -> list:
         return [cls(**data) for data in df.to_dict(orient="records")]
+    
+    def change_category_id(self, db: DbAccess, new_category_id: int):
+        db.update_value(self, "category_id", new_category_id)
 
 class Sub(BaseSub):
     category: Category
