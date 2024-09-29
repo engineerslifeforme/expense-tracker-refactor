@@ -87,6 +87,7 @@ def analyze(db: DbAccess):
         
         end_month = left.number_input("End Month", min_value=1, step=1, max_value=12) + 1
         end_year = right.number_input("End Year", step=1, value=date.today().year)
+        month_period = ((end_year * 12) + (end_month - 1)) - ((start_year * 12) + (start_month-1))
         if end_month > 12:
             end_year += 1
             end_month = 1
@@ -101,14 +102,17 @@ def analyze(db: DbAccess):
             df["date"] = pd.to_datetime(df["date"])
             if remove_deposits:
                 df = df.loc[df["amount"] < ZERO, :]
+            total = df["amount"].sum()
             df["year"] = df["date"].dt.year
             df["month"] = df["date"].dt.month
             df["month_label"] = df["year"].astype(str) + "-" + df["month"].astype(str)
             group_month = df[["amount", "month_label"]].groupby(by="month_label").sum().reset_index(drop=False)
             group_month["date"] = pd.to_datetime(group_month["month_label"])
             group_month = group_month.sort_values(by="date")
-            st.markdown(f"{len(group_month)} Months")
-            st.markdown(f"Monthly Average: `${group_month['amount'].mean()}`")
+            st.markdown(f"{month_period} Months")
+            st.markdown(f"Period Total: `${total}`")
+            st.markdown(f"Monthly Average (non-zero): `${group_month['amount'].mean()}`")
+            st.markdown(f"Monthly Average (total time period): `${group_month['amount'].sum() / month_period}`")
             st.markdown(f"Average Expense: `${df['amount'].mean()}`")
             st.markdown(f"Budget {category_to_analyze.budget.name} has increment ${category_to_analyze.budget.increment} with frequency {category_to_analyze.budget.frequency}")
             plot_data = [
@@ -140,6 +144,8 @@ def analyze(db: DbAccess):
             if remove_deposits:
                 df = df.loc[df["amount"] < ZERO, :]
             df["year"] = df["date"].dt.year
+            group_year = df[["amount", "year"]].groupby(by="year").sum().reset_index(drop=False)
+            st.markdown(f"Yearly Average: ${group_year['amount'].mean()}")
             plot_data = [
                 go.Bar(x=df["year"], y=df["amount"])
             ]
