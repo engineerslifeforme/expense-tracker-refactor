@@ -11,7 +11,7 @@ from expense_tracker.sub import DbSub, Sub
 from expense_tracker.common import ZERO
 from expense_tracker.execute import change_sub_budget
 
-from helper_ui import select_category
+from helper_ui import select_category, select_budget
 
 def category(db: DbAccess):
     options = [
@@ -20,6 +20,7 @@ def category(db: DbAccess):
         "View",
         "Analyze",
         "Switch Sub",
+        "New",
     ]
     selected_mode = st.sidebar.radio(
         "Category Mode",
@@ -36,8 +37,27 @@ def category(db: DbAccess):
         analyze(db)
     elif selected_mode == options[4]:
         switch_sub_category(db)
+    elif selected_mode == options[5]:
+        new_category(db)
     else:
         st.error(f"Unknown category mode: {selected_mode}")
+
+def new_category(db: DbAccess):
+    st.markdown("### Add New Category")
+    name = st.text_input("Name")
+    new_id = db.get_next_id(Category)
+    budget_id = select_budget(db).id
+    if st.button("Add New Category"):
+        DbCategory(
+            valid=True,
+            id=new_id,
+            name=name,
+            budget_id=budget_id
+        ).add_to_db(db)
+        st.success(f"Added new Category {new_id}")
+        new_category = Category.load_single(db, new_id)
+        st.write(new_category.model_dump())
+
 
 def switch_sub_category(db: DbAccess):
     st.markdown("### Switch Sub Category")
