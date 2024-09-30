@@ -12,6 +12,7 @@ from helper_ui import (
     amount_input,
     sub_table,
     select_category,
+    select_account,
 )
 
 def search(db: DbAccess):
@@ -60,16 +61,29 @@ def search_id(db: DbAccess):
 
 def transaction_data_search(db: DbAccess):
     amount = None
+    start = st.date_input("Start Date")
+    end = st.date_input("End Date")
     left, right = st.columns(2)
     if left.checkbox("Filter on Amount"):
         amount = amount_input(allow_negative=True, st_container=right)
+    account_id = None
+    if left.checkbox("Filter on Account"):
+        account_id = select_account(db).id
     description = None
     left, right = st.columns(2)
     if left.checkbox("Filter Description"):
         right.info("Remember to use `%` as wildcard")
         description = right.text_input("Description Filter Content")
+    
     if st.button("Search"):
-        matches = Transaction.load(db, amount=amount, description=description)
+        matches = Transaction.load(
+            db, 
+            amount=amount, 
+            description=description, 
+            less_equal_date=end, 
+            greater_equal_date=start,
+            account_id=account_id,
+        )
         if len(matches) > 0:
             st.write(taction_table(matches))
         else:
