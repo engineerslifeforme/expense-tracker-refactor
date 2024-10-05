@@ -61,9 +61,12 @@ def search_id(db: DbAccess):
 
 def transaction_data_search(db: DbAccess):
     amount = None
-    start = st.date_input("Start Date")
-    end = st.date_input("End Date")
     left, right = st.columns(2)
+    start = None
+    end = None
+    if left.checkbox("Filter by Date"):
+        start = st.date_input("Start Date")
+        end = st.date_input("End Date")
     if left.checkbox("Filter on Amount"):
         amount = amount_input(allow_negative=True, st_container=right)
     account_id = None
