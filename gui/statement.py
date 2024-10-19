@@ -124,6 +124,7 @@ def assign(db: DbAccess):
         account_id_filter = select_account(db, label_prefix="Filter").id
     all_statements = pd.DataFrame([i.model_dump() for i in DbStatement.load(db, account_id=account_id_filter)])
     unmapped = DbStatement.load(db, account_id=account_id_filter, unmapped_taction=True)
+    st.markdown(f"{len(unmapped)} Unmapped statements")
     if st.button("Attempt Auto-Assign"):
         transactions = pd.DataFrame([i.model_dump() for i in DbTransaction.load(db)])
         for unmapped_item in unmapped:

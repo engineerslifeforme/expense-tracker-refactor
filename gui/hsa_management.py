@@ -172,6 +172,10 @@ def find_expenses(db: DbAccess):
 
 def upload_record(db: DbAccess):
     st.markdown("### Upload HSA Record")
+    st.info(""" #### Instructions for Getting data
+- Manage Expenses
+- Export Expenses
+""")
     uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
         dataframe = pd.read_csv(
