@@ -55,14 +55,19 @@ def statement_scanning(db: DbAccess):
 def search_transactions(db: DbAccess):
     start = st.date_input("Start Date")
     end = st.date_input("End Date")
-    account_id = None
+    account = None
     if st.checkbox("Filter Account"):
-        account_id = select_account(db).id
-    transactions = pd.DataFrame([t.model_dump() for t in DbTransaction.load(db, account_id=account_id, less_equal_date=end, greater_equal_date=start)])
+        account= select_account(db)
+    transactions = pd.DataFrame([t.model_dump() for t in DbTransaction.load(db, account_id=account.id, less_equal_date=end, greater_equal_date=start)])
     statements = pd.DataFrame([s.model_dump() for s in DbStatement.load(db, less_equal_date=end, greater_equal_date=start)])
     filtered = transactions.loc[~transactions["id"].isin(statements["taction_id"]), :]
     st.markdown(f"Transactions not mapped to statements: ({len(filtered)} of {len(transactions)})")
     st.write(filtered)
+    unmapped_sum = filtered["amount"].sum()
+    st.markdown(f"Unmapped total: ${unmapped_sum}")
+    if account is not None:
+        st.markdown(f"Account {account.name} may display with balance: {account.balance - unmapped_sum}")
+
     
 def unmap_transaction(db: DbAccess):
     statement_to_unmap = st.number_input(
