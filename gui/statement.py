@@ -9,6 +9,7 @@ from expense_tracker.statement import DbStatement
 from expense_tracker.transaction import Transaction, DbTransaction
 from expense_tracker.execute import execute_transaction
 from expense_tracker.account import Account
+from expense_tracker.common import ZERO
 
 from helper_ui import (
     select_account, 
@@ -236,10 +237,17 @@ def assign(db: DbAccess):
             db.update_value(statement, "taction_id", taction_id)
             st.success(f"Assigned statement {statement.id} to Transaction {taction_id}")
 
+def find_possible_column(column_names: list, search_term: str) -> int:
+    for index, name in enumerate(column_names):
+        if search_term in name.lower():
+            return index
+    return 0
+
 def upload(db: DbAccess):
     st.markdown("## Statement Scanning")
     uploaded_file = st.file_uploader("Choose a file")
     use_headers = "infer"
+    today = date.today()
     if uploaded_file is not None:
         if st.checkbox("No CSV Header"):
             use_headers = None
@@ -257,19 +265,22 @@ def upload(db: DbAccess):
             min_value=1,
             step=1,
             max_value=12,
+            value=today.month,
         )
         year = middle.number_input(
             "Statement Year",
             min_value=1950,
             step=1,
             max_value=2050,
-            value=2024,
+            value=today.year,
         )
         account_id = select_account(db, st_container=right).id
         left, middle, right = st.columns(3)
+        column_names = dataframe.columns
         date_column = left.selectbox(
             "Date Column",
-            options=dataframe.columns
+            options=column_names,
+            index=find_possible_column(column_names, "date"),
         )
         try:
             new_data["date"] = pd.to_datetime(dataframe[date_column]).dt.date
@@ -278,14 +289,16 @@ def upload(db: DbAccess):
         left, middle, right = st.columns(3)
         description_column = left.selectbox(
             "Description Column",
-            options=dataframe.columns
+            options=column_names,
+            index=find_possible_column(column_names, "description"),
         )
         new_data["description"] = dataframe[description_column]
         left, middle, right = st.columns(3)
         if left.checkbox("Split Credit/Debit"):
             credit_column = left.selectbox(
                 "Credit Column",
-                options=dataframe.columns
+                options=column_names,
+                index=find_possible_column(column_names, "credit"),
             )
             dataframe[credit_column] = dataframe[credit_column].fillna("0.00")
             try:
@@ -294,7 +307,8 @@ def upload(db: DbAccess):
                 middle.warning(f"Column `{credit_column}` cannot be converted to decimal")
             debit_column = left.selectbox(
                 "Debit Column",
-                options=dataframe.columns
+                options=column_names,
+                index=find_possible_column(column_names, "debit"),
             )
             dataframe[debit_column] = dataframe[debit_column].fillna("0.00")
             try:
@@ -308,13 +322,18 @@ def upload(db: DbAccess):
         else:
             amount_column = left.selectbox(
                 "Amount Column",
-                options=dataframe.columns
+                options=column_names,
+                index=find_possible_column(column_names, "amount"),
             )
             try:
                 new_data["amount"] = dataframe[amount_column].apply(Decimal)
             except:
                 middle.warning(f"Column `{amount_column}` cannot be converted to decimal")
-        if st.checkbox("Flip Amount Sign"):
+        entries = len(new_data)
+        negative_entries = len(new_data.loc[new_data["amount"] <ZERO, :])
+        positive_entries = entries - negative_entries
+        # Usually more debits than credits
+        if st.checkbox("Flip Amount Sign", value=(positive_entries > negative_entries)):
             new_data["amount"] = new_data["amount"] * Decimal("-1")
         new_data["account_id"] = account_id
         new_data["statement_year"] = year
