@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
 
 import streamlit as st
 import pandas as pd
@@ -53,7 +53,7 @@ def statement_scanning(db: DbAccess):
         st.error(f"Unknown mode: {mode}")
 
 def search_transactions(db: DbAccess):
-    start = st.date_input("Start Date")
+    start = st.date_input("Start Date", value=(date.today() - timedelta(days=90)))
     end = st.date_input("End Date")
     account = None
     if st.checkbox("Filter Account"):
@@ -243,9 +243,12 @@ def assign(db: DbAccess):
             st.success(f"Assigned statement {statement.id} to Transaction {taction_id}")
 
 def find_possible_column(column_names: list, search_term: str) -> int:
-    for index, name in enumerate(column_names):
-        if search_term in name.lower():
-            return index
+    try:
+        for index, name in enumerate(column_names):
+            if search_term in name.lower():
+                return index
+    except AttributeError:
+        pass
     return 0
 
 def upload(db: DbAccess):
@@ -335,10 +338,14 @@ def upload(db: DbAccess):
             except:
                 middle.warning(f"Column `{amount_column}` cannot be converted to decimal")
         entries = len(new_data)
-        negative_entries = len(new_data.loc[new_data["amount"] <ZERO, :])
-        positive_entries = entries - negative_entries
+        try:
+            negative_entries = len(new_data.loc[new_data["amount"] <ZERO, :])
+            positive_entries = entries - negative_entries
+            default_flip = positive_entries > negative_entries
+        except KeyError:
+            default_flip = False
         # Usually more debits than credits
-        if st.checkbox("Flip Amount Sign", value=(positive_entries > negative_entries)):
+        if st.checkbox("Flip Amount Sign", value=default_flip):
             new_data["amount"] = new_data["amount"] * Decimal("-1")
         new_data["account_id"] = account_id
         new_data["statement_year"] = year
