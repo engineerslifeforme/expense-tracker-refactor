@@ -6,6 +6,13 @@ I inherited the database format from a previous project so the project
 does not currently have a way to setup a fresh database.  I may
 attempt to fix that.
 
+## Install
+
+```bash
+pip install -e .
+pip install -r requirements.txt # For streamlit GUI
+```
+
 ## TODO
 
 1. Enter Transaction

@@ -199,8 +199,12 @@ def budget_transfer(db: DbAccess):
         label_prefix="Deposit",
         st_container=left,
     )
+    if st.checkbox("Filling overspent"):
+        default = deposit_budget.balance * NEGATIVE_ONE
+    else:
+        default = withdraw_budget.balance
     right.markdown(f"Balance: ${deposit_budget.balance}")
-    amount = amount_input()
+    amount = amount_input(default=default)
     notes = st.text_input("Optional adjustment notes")
     st.markdown(f"Budget {withdraw_budget.name} new balance: ${withdraw_budget.balance - amount}")
     st.markdown(f"Budget {deposit_budget.name} new balance: ${deposit_budget.balance + amount}")
