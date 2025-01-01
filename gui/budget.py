@@ -122,10 +122,25 @@ def budget_profile(db: DbAccess):
                 )
             ]
             st.markdown(f"Budget: {selected_profile.budget.name} ({selected_profile.budget.id})")
-            st.plotly_chart(px.line(
+            fig = px.line(
                 x = selected_profile.month_labels,
                 y = selected_profile.month_values,
-            ))
+            )
+            current_month = date.today().month
+            next_month = current_month + 1
+            if next_month > 12:
+                next_month = 1
+            current_balance = selected_profile.budget.balance
+            expected_next_month_balance = selected_profile.budget.balance + selected_profile.budget.monthly_increment_amount
+            fig.add_scatter(
+                x=[selected_profile.month_labels[current_month - 1], selected_profile.month_labels[next_month - 1]], 
+                y=[current_balance, expected_next_month_balance], 
+                name='Current Balance + Next Month Extrapolated', 
+                line=dict(color='red')
+            )
+            st.plotly_chart(fig)
+            
+            
 
 def add_new(db: DbAccess):
     st.markdown("### Add New Budget")
@@ -186,19 +201,28 @@ def update_fields(db: DbAccess):
 
 def budget_transfer(db: DbAccess):
     st.markdown("### Budget Transfer")
+    valid = True
+    if st.checkbox("Allow invalid budgets?"):
+        valid = None
     left, right = st.columns(2)
     withdraw_budget = select_budget(
         db,
         label_prefix="Withdrawal",
         st_container=left,
+        valid = valid,
     )
+    if not withdraw_budget.valid:
+        st.warning(f"{withdraw_budget.name} is not valid!")
     right.markdown(f"Balance: ${withdraw_budget.balance}")
     left, right = st.columns(2)
     deposit_budget = select_budget(
         db,
         label_prefix="Deposit",
         st_container=left,
+        valid = valid,
     )
+    if not deposit_budget.valid:
+        st.warning(f"{deposit_budget.name} is not valid!")
     if st.checkbox("Filling overspent"):
         default = deposit_budget.balance * NEGATIVE_ONE
     else:

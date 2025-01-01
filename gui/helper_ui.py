@@ -21,14 +21,14 @@ def select_category(db: DbAccess, **kwargs) -> Category:
 def select_budget(db: DbAccess, **kwargs) -> Budget:
     return _select(db, Budget, "Budget", **kwargs)
 
-def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_prefix: str = None, st_container = None):
+def _select(db: DbAccess, DataType, label: str, label_suffix: str = None, label_prefix: str = None, st_container = None, **kwargs):
     if st_container is None:
         st_container = st
     if label_prefix is not None:
         label = " ".join([label_prefix, label])
     if label_suffix is not None:
         label = " ".join([label, label_suffix])
-    items = DataType.load(db)
+    items = DataType.load(db, **kwargs)
     name_map = {a.name: a for a in items}
     return name_map[st_container.selectbox(
         label,
